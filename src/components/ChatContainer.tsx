@@ -11,7 +11,7 @@ export const ChatContainer: React.FC = () => {
       id: "initial-greeting",
       role: "assistant",
       content:
-        "Greetings. I am Hecate. How may I guide you on the Left Hand Path today?",
+        "Greetings. I am Hecate. How may I guide you on the Left Hand Path today? You may also request a visual manifestation by typing `/draw [Card Name]`.",
       timestamp: new Date(),
     },
   ]);
@@ -34,27 +34,93 @@ export const ChatContainer: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const responseText = await geminiService.sendMessage(content);
+      if (content.trim().startsWith("/draw ")) {
+        const cardName = content.trim().substring(6).trim();
+        
+        const generatingMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `*Channeling acausal energies to manifest ${cardName}...*`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, generatingMessage]);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: responseText,
-        timestamp: new Date(),
-      };
+        try {
+          const base64Image = await geminiService.generateTarotImage(cardName);
+          
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = {
+              id: (Date.now() + 2).toString(),
+              role: "assistant",
+              content: `data:image/jpeg;base64,${base64Image}`,
+              timestamp: new Date(),
+            };
+            return newMessages;
+          });
+        } catch (error: any) {
+          if (error.message === "API_KEY_INVALID") {
+             const aistudio = (window as any).aistudio;
+             if (aistudio && aistudio.openSelectKey) {
+               await aistudio.openSelectKey();
+             }
+             throw new Error("API key was invalid. Please select a valid key and try again.");
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        try {
+          const responseText = await geminiService.sendMessage(content, (base64Image) => {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: Date.now().toString() + Math.random().toString(),
+                role: "assistant",
+                content: `data:image/jpeg;base64,${base64Image}`,
+                timestamp: new Date(),
+              },
+            ]);
+          });
 
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
+          const assistantMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: responseText,
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+        } catch (error: any) {
+          if (error.message === "API_KEY_INVALID") {
+             const aistudio = (window as any).aistudio;
+             if (aistudio && aistudio.openSelectKey) {
+               await aistudio.openSelectKey();
+             }
+             throw new Error("API key was invalid. Please select a valid key and try again.");
+          } else {
+            throw error;
+          }
+        }
+      }
+    } catch (error: any) {
       console.error("Failed to send message:", error);
-      // You could add a toast or error message here
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content:
-          "I am currently unable to commune with the esoteric realms. Please try again later.",
+        content: error.message || "I am currently unable to commune with the esoteric realms. Please try again later.",
         timestamp: new Date(),
+        isError: true,
+        originalCommand: content.trim().startsWith("/draw ") ? content : undefined,
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => {
+        if (content.trim().startsWith("/draw ")) {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = errorMessage;
+          return newMessages;
+        }
+        return [...prev, errorMessage];
+      });
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +146,7 @@ export const ChatContainer: React.FC = () => {
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/10 via-zinc-950/50 to-zinc-950 pointer-events-none" />
-        <MessageList messages={messages} isLoading={isLoading} />
+        <MessageList messages={messages} isLoading={isLoading} onRetry={handleSendMessage} />
         <MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} />
       </main>
     </div>

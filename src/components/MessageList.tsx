@@ -5,11 +5,13 @@ import { MessageBubble } from "./MessageBubble";
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
+  onRetry?: (command: string) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isLoading,
+  onRetry,
 }) => {
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +33,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
       <div className="max-w-4xl mx-auto">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
+          <MessageBubble key={msg.id} message={msg} onRetry={onRetry} />
         ))}
         {isLoading && (
           <div className="flex justify-start mb-4">
