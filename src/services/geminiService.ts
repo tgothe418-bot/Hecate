@@ -1,6 +1,7 @@
 import { GoogleGenAI, Chat, Type, FunctionDeclaration, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { buildSystemInstruction } from "../knowledge";
 import { StarGameEngine, BoardName } from "../game/StarGame";
+import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
 
 // Initialize the Google Gen AI SDK
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -58,6 +59,10 @@ const drawTarotCardDeclaration: FunctionDeclaration = {
       cardName: {
         type: Type.STRING,
         description: "The name of the tarot card to draw (e.g., 'The Fool', 'Three of Swords').",
+      },
+      cardNumber: {
+        type: Type.STRING,
+        description: "The traditional number of the tarot card (e.g., '0', 'I', 'VIII', '10').",
       },
     },
     required: ["cardName"],
@@ -133,7 +138,7 @@ class GeminiService {
           } else if (call.name === "drawTarotCard") {
             const args = call.args as any;
             try {
-              const base64Image = await this.generateTarotImage(args.cardName);
+              const base64Image = await this.generateTarotImage(args.cardName, TAROT_KNOWLEDGE, args.cardNumber);
               if (onImageGenerated) {
                 onImageGenerated(base64Image);
               }
@@ -176,9 +181,10 @@ class GeminiService {
    * Integrates 'Nano Banana 2' (gemini-3.1-flash-image-preview) for Tarot Card Art Generation
    * Utilizes a 3:4 aspect ratio standard for Tarot cards.
    */
-  async generateTarotImage(cardName: string, stylePrompt: string = "Dark esoteric, highly detailed, occult tarot card art, mysterious aesthetic, chiaroscuro lighting, mystical symbols"): Promise<string> {
+  async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, stylePrompt: string = "Dark esoteric, highly detailed, occult tarot card art, sinister aesthetic, chiaroscuro lighting, mystical symbols"): Promise<string> {
     try {
-      const fullPrompt = `Create tarot card art for '${cardName}'. Style: ${stylePrompt}. Include the title '${cardName}' elegantly rendered in the image.`;
+      const numberPrompt = cardNumber ? ` Include the number '${cardNumber}' in a central location at the top of the card.` : ` Include the traditional card number in a central location at the top of the card.`;
+      const fullPrompt = `Create tarot card art for '${cardName}'. Context: ${esotericContext}. Style: ${stylePrompt}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
       
       // Create a new instance to ensure it uses the latest API_KEY from the dialog
       const imageAi = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY });
@@ -194,53 +200,26 @@ class GeminiService {
           imageConfig: {
             aspectRatio: "3:4",
             imageSize: "2K"
-          },
-          safetySettings: [
-            {
-              category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-              threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH, 
-            },
-            {
-              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-              threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-            },
-            {
-              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-              threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-            },
-            {
-              category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-              threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-            }
-          ]
+          }
         }
       });
 
-      if (!response.candidates || response.candidates.length === 0) {
-        throw new Error("No image generated. The request may have been blocked by safety filters.");
-      }
-
-      const candidate = response.candidates[0];
-      if (candidate.finishReason !== "STOP" && candidate.finishReason !== undefined) {
-        throw new Error(`Image generation stopped with reason: ${candidate.finishReason}`);
-      }
-
-      for (const part of candidate.content?.parts || []) {
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
           return part.inlineData.data; // Base64 string
         }
       }
-      throw new Error("No image generated in the response parts.");
+      throw new Error("No image generated.");
     } catch (error) {
       if (error instanceof Error && error.message.includes("Requested entity was not found.")) {
         throw new Error("API_KEY_INVALID");
       }
       console.error("Error generating Tarot image:", error);
-      if (error instanceof Error) {
-        throw error;
-      }
       throw new Error("Failed to materialize the visual archetype.");
     }
+  }
+  public getStarGameEngine(): StarGameEngine {
+    return this.starGameEngine;
   }
 }
 

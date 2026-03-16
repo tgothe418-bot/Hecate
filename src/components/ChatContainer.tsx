@@ -4,6 +4,7 @@ import { geminiService } from "../services/geminiService";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { Moon } from "lucide-react";
+import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
 
 export const ChatContainer: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -22,18 +23,33 @@ export const ChatContainer: React.FC = () => {
     geminiService.initChat();
   }, []);
 
-  const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content,
-      timestamp: new Date(),
-    };
+  const handleSendMessage = async (content: string, silent: boolean = false) => {
+    if (!silent) {
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content,
+        timestamp: new Date(),
+      };
 
-    setMessages((prev) => [...prev, userMessage]);
+      setMessages((prev) => [...prev, userMessage]);
+    }
     setIsLoading(true);
 
     try {
+      if (content.trim() === "/play_stargame") {
+        const gameMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "The Star Game has commenced. Make your move.",
+          timestamp: new Date(),
+          isGame: true,
+        };
+        setMessages((prev) => [...prev, gameMessage]);
+        setIsLoading(false);
+        return;
+      }
+
       if (content.trim().startsWith("/draw ")) {
         const cardName = content.trim().substring(6).trim();
         
@@ -46,7 +62,7 @@ export const ChatContainer: React.FC = () => {
         setMessages((prev) => [...prev, generatingMessage]);
 
         try {
-          const base64Image = await geminiService.generateTarotImage(cardName);
+          const base64Image = await geminiService.generateTarotImage(cardName, TAROT_KNOWLEDGE);
           
           setMessages((prev) => {
             const newMessages = [...prev];
@@ -146,7 +162,7 @@ export const ChatContainer: React.FC = () => {
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/10 via-zinc-950/50 to-zinc-950 pointer-events-none" />
-        <MessageList messages={messages} isLoading={isLoading} onRetry={handleSendMessage} />
+        <MessageList messages={messages} isLoading={isLoading} onRetry={handleSendMessage} onGameMove={(cmd) => handleSendMessage(cmd, true)} />
         <MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} />
       </main>
     </div>

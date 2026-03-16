@@ -2,13 +2,16 @@ import React, { useState } from "react";
 import { Message } from "../types";
 import { Bot, User, RefreshCw, Maximize2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { StarGameBoard } from "./StarGameBoard";
+import { geminiService } from "../services/geminiService";
 
 interface MessageBubbleProps {
   message: Message;
   onRetry?: (command: string) => void;
+  onGameMove?: (command: string) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, onGameMove }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isUser = message.role === "user";
   const isImage = message.content.startsWith("data:image/");
@@ -19,7 +22,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry }
         className={`flex w-full ${isUser ? "justify-end" : "justify-start"} mb-4`}
       >
         <div
-          className={`flex max-w-[80%] ${isUser ? "flex-row-reverse" : "flex-row"} items-start gap-3`}
+          className={`flex ${message.isGame ? "max-w-[95%] w-full" : "max-w-[80%]"} ${isUser ? "flex-row-reverse" : "flex-row"} items-start gap-3`}
         >
           <div
             className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUser ? "bg-zinc-800 text-zinc-200" : message.isError ? "bg-red-900 text-red-100" : "bg-red-950 text-red-400"}`}
@@ -27,7 +30,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry }
             {isUser ? <User size={18} /> : <Bot size={18} />}
           </div>
           <div
-            className={`px-4 py-3 rounded-2xl ${isUser ? "bg-zinc-800 text-zinc-100 rounded-tr-sm" : message.isError ? "bg-red-950/50 text-red-200 rounded-tl-sm border border-red-900/50" : "bg-zinc-900 text-zinc-300 rounded-tl-sm border border-red-900/30"}`}
+            className={`px-4 py-3 rounded-2xl ${isUser ? "bg-zinc-800 text-zinc-100 rounded-tr-sm" : message.isError ? "bg-red-950/50 text-red-200 rounded-tl-sm border border-red-900/50" : "bg-zinc-900 text-zinc-300 rounded-tl-sm border border-red-900/30"} ${message.isGame ? "w-full" : ""}`}
           >
             {isImage ? (
               <div className="relative group">
@@ -45,6 +48,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry }
                 >
                   <Maximize2 size={16} />
                 </button>
+              </div>
+            ) : message.isGame ? (
+              <div className="flex flex-col gap-4">
+                <div className="prose prose-invert prose-sm max-w-none">
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                </div>
+                <StarGameBoard 
+                  engine={geminiService.getStarGameEngine()} 
+                  onMove={(cmd) => onGameMove && onGameMove(cmd)} 
+                />
               </div>
             ) : (
               <div className="prose prose-invert prose-sm max-w-none">

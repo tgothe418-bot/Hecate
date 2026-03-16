@@ -5,4 +5,5 @@ export interface Message {
   timestamp: Date;
   isError?: boolean;
   originalCommand?: string;
+  isGame?: boolean;
 }

@@ -6,12 +6,14 @@ interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
   onRetry?: (command: string) => void;
+  onGameMove?: (command: string) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isLoading,
   onRetry,
+  onGameMove,
 }) => {
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +35,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
       <div className="max-w-4xl mx-auto">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} onRetry={onRetry} />
+          <MessageBubble key={msg.id} message={msg} onRetry={onRetry} onGameMove={onGameMove} />
         ))}
         {isLoading && (
           <div className="flex justify-start mb-4">
