@@ -14,6 +14,18 @@ class GeminiService {
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,
+        topP: 0.9,
+        topK: 40,
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_ONLY_HIGH", 
+          },
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_ONLY_HIGH",
+          }
+        ]
       },
     });
   }
