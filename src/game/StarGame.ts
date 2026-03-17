@@ -1,166 +1,193 @@
-export type PieceDesignation = 
-  | 'α(α)' | 'α(β)' | 'α(γ)' 
-  | 'β(α)' | 'β(β)' | 'β(γ)' 
-  | 'γ(α)' | 'γ(β)' | 'γ(γ)';
+export type Faction = 'White' | 'Black';
 
-export type PlayerColor = 'White' | 'Black';
-
-export type BoardName = 'Sirius' | 'Arcturus' | 'Antares' | 'Mira' | 'Rigel' | 'Deneb' | 'Naos';
-
-export interface Piece {
-  id: string;
-  color: PlayerColor;
-  designation: PieceDesignation;
+export interface SGSPiece {
+  pieceId: string;
+  faction: Faction;
+  alchemicalId: string;
+  permutationTier: number;
+  coordinates: { x: number; y: number; z: number };
 }
 
-export interface Square {
-  id: string; // e.g., 'A1', 'B2'
-  color: 'black' | 'white';
-  piece: Piece | null;
+export interface SGSMetadata {
+  turn: number;
+  activePlayer: Faction;
+  aeonicPhase: string;
 }
 
-export interface Board {
-  name: BoardName;
-  level: number; // 1 to 7
-  squares: Square[]; // 18 squares
+export interface SGSState {
+  metadata: SGSMetadata;
+  boardState: SGSPiece[];
+  history: string[];
 }
-
-const DESIGNATION_SEQUENCE: PieceDesignation[] = [
-  'α(α)', 'α(β)', 'α(γ)', 
-  'β(α)', 'β(β)', 'β(γ)', 
-  'γ(α)', 'γ(β)', 'γ(γ)'
-];
 
 export class StarGameEngine {
-  boards: Map<BoardName, Board>;
-  currentPlayer: PlayerColor;
-  moveHistory: string[];
+  public state: SGSState;
 
   constructor() {
-    this.boards = new Map();
-    this.currentPlayer = 'White';
-    this.moveHistory = [];
-    this.initializeBoards();
+    this.state = {
+      metadata: {
+        turn: 1,
+        activePlayer: 'White',
+        aeonicPhase: 'Initiation'
+      },
+      boardState: [],
+      history: []
+    };
     this.setupInitialPieces();
   }
 
-  private initializeBoards() {
-    const boardNames: BoardName[] = ['Sirius', 'Arcturus', 'Antares', 'Mira', 'Rigel', 'Deneb', 'Naos'];
-    boardNames.forEach((name, index) => {
-      const squares: Square[] = [];
-      // 18 squares per board (9 black, 9 white)
-      // Represented as a 3x6 grid for simplicity: A1-C6
-      const cols = ['A', 'B', 'C'];
-      for (let row = 1; row <= 6; row++) {
-        for (let c = 0; c < cols.length; c++) {
-          const col = cols[c];
-          squares.push({
-            id: `${col}${row}`,
-            color: (row + c) % 2 === 0 ? 'black' : 'white',
-            piece: null
-          });
-        }
-      }
-      this.boards.set(name, {
-        name,
-        level: index + 1,
-        squares
-      });
-    });
-  }
-
   private setupInitialPieces() {
-    // Exoteric Starting Positions (Simple Game)
-    // This is a simplified setup based on the rules provided.
-    // In a full implementation, exact starting squares would be specified.
-    
-    const placePieces = (boardName: BoardName, color: PlayerColor, designations: PieceDesignation[], count: number) => {
-      const board = this.boards.get(boardName);
-      if (!board) return;
-      
-      let placed = 0;
-      for (const square of board.squares) {
-        if (placed >= count) break;
-        // Simple placement logic: White on rows 1-2, Black on rows 5-6
-        if ((color === 'White' && parseInt(square.id[1]) <= 2) || 
-            (color === 'Black' && parseInt(square.id[1]) >= 5)) {
-          if (!square.piece) {
-            square.piece = {
-              id: `${color}-${boardName}-${placed}`,
-              color,
-              designation: designations[placed % designations.length]
-            };
-            placed++;
-          }
-        }
+    // Initial pieces based on the 9x9x7 grid
+    this.state.boardState = [
+      {
+        pieceId: "W-VEN-2-01",
+        faction: "White",
+        alchemicalId: "Venus",
+        permutationTier: 2,
+        coordinates: { x: 4, y: 4, z: 2 }
+      },
+      {
+        pieceId: "B-MAR-1-04",
+        faction: "Black",
+        alchemicalId: "Mars",
+        permutationTier: 1,
+        coordinates: { x: 7, y: 2, z: 3 }
+      },
+      {
+        pieceId: "W-MOO-1-01",
+        faction: "White",
+        alchemicalId: "Moon",
+        permutationTier: 1,
+        coordinates: { x: 1, y: 1, z: 1 }
+      },
+      {
+        pieceId: "B-SUN-3-01",
+        faction: "Black",
+        alchemicalId: "Sun",
+        permutationTier: 3,
+        coordinates: { x: 9, y: 9, z: 4 }
       }
-    };
-
-    const alphaSet: PieceDesignation[] = ['α(α)', 'α(β)', 'α(γ)'];
-    const betaSet: PieceDesignation[] = ['β(α)', 'β(β)', 'β(γ)'];
-    const gammaSet: PieceDesignation[] = ['γ(α)', 'γ(β)', 'γ(γ)'];
-
-    ['White', 'Black'].forEach(color => {
-      const c = color as PlayerColor;
-      placePieces('Sirius', c, alphaSet, 6);
-      placePieces('Arcturus', c, alphaSet, 3);
-      placePieces('Antares', c, betaSet, 6);
-      // Mira is empty
-      placePieces('Rigel', c, betaSet, 3);
-      placePieces('Deneb', c, gammaSet, 6);
-      placePieces('Naos', c, gammaSet, 3);
-    });
+    ];
   }
 
-  public getBoardState(boardName: BoardName): Board | undefined {
-    return this.boards.get(boardName);
+  public importSGS(payload: string): SGSState {
+    const parsed = JSON.parse(payload) as SGSState;
+    if (!parsed.metadata || !parsed.boardState) {
+      throw new Error("Invalid SGS payload");
+    }
+    this.state = parsed;
+    return this.state;
   }
 
-  public getAllBoardsState(): Record<string, any> {
-    const state: Record<string, any> = {};
-    this.boards.forEach((board, name) => {
-      state[name] = board.squares.filter(s => s.piece).map(s => ({
-        square: s.id,
-        piece: s.piece
-      }));
-    });
-    return state;
+  public exportSGS(): string {
+    return JSON.stringify(this.state, null, 2);
   }
 
-  public movePiece(fromBoard: BoardName, fromSquare: string, toBoard: BoardName, toSquare: string): boolean {
-    const sourceBoard = this.boards.get(fromBoard);
-    const targetBoard = this.boards.get(toBoard);
+  public getPieceAt(x: number, y: number, z: number): SGSPiece | undefined {
+    return this.state.boardState.find(p => p.coordinates.x === x && p.coordinates.y === y && p.coordinates.z === z);
+  }
 
-    if (!sourceBoard || !targetBoard) return false;
+  public validateCausalMove(piece: SGSPiece, targetX: number, targetY: number, targetZ: number): boolean {
+    // Causal move: movement within the same board (z remains constant)
+    if (piece.coordinates.z !== targetZ) return false;
+    
+    const dx = Math.abs(piece.coordinates.x - targetX);
+    const dy = Math.abs(piece.coordinates.y - targetY);
+    
+    // Basic causal movement: up to permutationTier squares in any direction
+    if (dx > piece.permutationTier || dy > piece.permutationTier) return false;
+    if (dx === 0 && dy === 0) return false;
+    
+    return true;
+  }
 
-    const sourceSq = sourceBoard.squares.find(s => s.id === fromSquare);
-    const targetSq = targetBoard.squares.find(s => s.id === toSquare);
+  public validateAcausalMove(piece: SGSPiece, targetX: number, targetY: number, targetZ: number): boolean {
+    // Acausal move: movement between boards (z changes)
+    if (piece.coordinates.z === targetZ) return false;
+    
+    const dz = Math.abs(piece.coordinates.z - targetZ);
+    
+    // Basic acausal movement: can move up/down boards up to permutationTier
+    if (dz > piece.permutationTier) return false;
+    
+    // Acausal moves might have x/y restrictions, but for now allow same x/y or adjacent
+    const dx = Math.abs(piece.coordinates.x - targetX);
+    const dy = Math.abs(piece.coordinates.y - targetY);
+    
+    if (dx > 1 || dy > 1) return false;
+    
+    return true;
+  }
 
-    if (!sourceSq || !targetSq || !sourceSq.piece) return false;
+  public movePiece(pieceId: string, targetX: number, targetY: number, targetZ: number): boolean {
+    const piece = this.state.boardState.find(p => p.pieceId === pieceId);
+    if (!piece) return false;
 
-    const piece = sourceSq.piece;
+    if (piece.faction !== this.state.metadata.activePlayer) {
+      return false; // Not this player's turn
+    }
 
-    if (piece.color !== this.currentPlayer) return false;
+    // Check bounds
+    if (targetX < 1 || targetX > 9 || targetY < 1 || targetY > 9 || targetZ < 1 || targetZ > 7) {
+      return false;
+    }
 
-    // TODO: Implement strict movement validation based on Alpha, Beta, Gamma rules
-    // For now, we perform the move to demonstrate the Metamorphosis mechanic
+    // Check if target is occupied by same faction
+    const targetPiece = this.getPieceAt(targetX, targetY, targetZ);
+    if (targetPiece && targetPiece.faction === piece.faction) {
+      return false; // Cannot capture own piece
+    }
 
-    // Execute Move
-    targetSq.piece = piece;
-    sourceSq.piece = null;
+    // Validate move logic
+    const isCausal = piece.coordinates.z === targetZ;
+    const isValid = isCausal 
+      ? this.validateCausalMove(piece, targetX, targetY, targetZ)
+      : this.validateAcausalMove(piece, targetX, targetY, targetZ);
 
-    // The Law of Metamorphosis
-    this.applyMetamorphosis(piece);
+    if (!isValid) return false;
 
-    this.moveHistory.push(`${this.currentPlayer}: ${piece.designation} from ${fromBoard} ${fromSquare} to ${toBoard} ${toSquare}`);
-    this.currentPlayer = this.currentPlayer === 'White' ? 'Black' : 'White';
+    // Capture
+    if (targetPiece && targetPiece.faction !== piece.faction) {
+      this.state.boardState = this.state.boardState.filter(p => p.pieceId !== targetPiece.pieceId);
+      this.state.history.push(`${piece.faction} captured ${targetPiece.faction} piece at z${targetZ}(${targetX},${targetY})`);
+    }
+
+    const oldCoords = { ...piece.coordinates };
+    piece.coordinates = { x: targetX, y: targetY, z: targetZ };
+
+    // Transformation logic on acausal move
+    if (!isCausal) {
+      piece.permutationTier = piece.permutationTier < 3 ? piece.permutationTier + 1 : 1;
+    }
+
+    this.state.history.push(`${pieceId}: z${oldCoords.z}(${oldCoords.x},${oldCoords.y}) -> z${targetZ}(${targetX},${targetY})[Permutation: Tier ${piece.permutationTier}]`);
+    this.state.metadata.turn += 1;
+    this.state.metadata.activePlayer = this.state.metadata.activePlayer === 'White' ? 'Black' : 'White';
+
+    // Check win conditions
+    this.checkWinConditions();
 
     return true;
   }
 
-  private applyMetamorphosis(piece: Piece) {
-    const currentIndex = DESIGNATION_SEQUENCE.indexOf(piece.designation);
-    const nextIndex = (currentIndex + 1) % DESIGNATION_SEQUENCE.length;
-    piece.designation = DESIGNATION_SEQUENCE[nextIndex];
+  private checkWinConditions() {
+    const whitePieces = this.state.boardState.filter(p => p.faction === 'White');
+    const blackPieces = this.state.boardState.filter(p => p.faction === 'Black');
+
+    if (whitePieces.length === 0) {
+      this.state.metadata.aeonicPhase = 'Black Victory (Physical Domination)';
+    } else if (blackPieces.length === 0) {
+      this.state.metadata.aeonicPhase = 'White Victory (Physical Domination)';
+    }
+
+    // Acausal Supremacy: occupying Naos (z=7) with a Tier 3 piece
+    const whiteNaos = whitePieces.some(p => p.coordinates.z === 7 && p.permutationTier === 3);
+    const blackNaos = blackPieces.some(p => p.coordinates.z === 7 && p.permutationTier === 3);
+
+    if (whiteNaos) {
+      this.state.metadata.aeonicPhase = 'White Victory (Acausal Supremacy)';
+    } else if (blackNaos) {
+      this.state.metadata.aeonicPhase = 'Black Victory (Acausal Supremacy)';
+    }
   }
 }

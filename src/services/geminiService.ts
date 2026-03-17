@@ -8,45 +8,39 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const SYSTEM_INSTRUCTION = buildSystemInstruction();
 
-const getBoardStateDeclaration: FunctionDeclaration = {
-  name: "getBoardState",
-  description: "Get the current state of a specific board in the Star Game.",
+const getGameStateDeclaration: FunctionDeclaration = {
+  name: "getGameState",
+  description: "Get the current state of the Star Game, including all pieces and their 3D coordinates.",
   parameters: {
     type: Type.OBJECT,
-    properties: {
-      boardName: {
-        type: Type.STRING,
-        description: "The name of the board (Sirius, Arcturus, Antares, Mira, Rigel, Deneb, Naos)",
-      },
-    },
-    required: ["boardName"],
+    properties: {},
   },
 };
 
 const movePieceDeclaration: FunctionDeclaration = {
   name: "movePiece",
-  description: "Move a piece in the Star Game.",
+  description: "Move a piece in the Star Game using 3D coordinates.",
   parameters: {
     type: Type.OBJECT,
     properties: {
-      fromBoard: {
+      pieceId: {
         type: Type.STRING,
-        description: "The name of the board the piece is currently on.",
+        description: "The ID of the piece to move (e.g., 'W-VEN-2-01').",
       },
-      fromSquare: {
-        type: Type.STRING,
-        description: "The ID of the square the piece is currently on (e.g., A1, B2).",
+      targetX: {
+        type: Type.NUMBER,
+        description: "The target X coordinate (1-9).",
       },
-      toBoard: {
-        type: Type.STRING,
-        description: "The name of the board to move the piece to.",
+      targetY: {
+        type: Type.NUMBER,
+        description: "The target Y coordinate (1-9).",
       },
-      toSquare: {
-        type: Type.STRING,
-        description: "The ID of the square to move the piece to.",
+      targetZ: {
+        type: Type.NUMBER,
+        description: "The target Z coordinate (board level, 1-7).",
       },
     },
-    required: ["fromBoard", "fromSquare", "toBoard", "toSquare"],
+    required: ["pieceId", "targetX", "targetY", "targetZ"],
   },
 };
 
@@ -85,7 +79,7 @@ class GeminiService {
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
-        tools: [{ functionDeclarations: [getBoardStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration] }],
+        tools: [{ functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration] }],
         safetySettings: [
           {
             category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -112,22 +106,21 @@ class GeminiService {
       while (response.functionCalls && response.functionCalls.length > 0) {
         const functionResponses: any[] = [];
         for (const call of response.functionCalls) {
-          if (call.name === "getBoardState") {
-            const args = call.args as any;
-            const state = this.starGameEngine.getBoardState(args.boardName as BoardName);
+          if (call.name === "getGameState") {
+            const state = this.starGameEngine.state;
             functionResponses.push({
               functionResponse: {
-                name: "getBoardState",
-                response: state || { error: "Board not found" }
+                name: "getGameState",
+                response: state
               }
             });
           } else if (call.name === "movePiece") {
             const args = call.args as any;
             const success = this.starGameEngine.movePiece(
-              args.fromBoard as BoardName,
-              args.fromSquare,
-              args.toBoard as BoardName,
-              args.toSquare
+              args.pieceId,
+              args.targetX,
+              args.targetY,
+              args.targetZ
             );
             functionResponses.push({
               functionResponse: {
