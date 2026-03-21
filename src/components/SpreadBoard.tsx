@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Spread, TarotCard } from '../types';
 import { motion } from 'motion/react';
+import { X } from 'lucide-react';
 
 interface SpreadBoardProps {
   spread: Spread;
@@ -8,17 +9,21 @@ interface SpreadBoardProps {
 
 export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
+  const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
 
   const toggleCard = (id: string) => {
     setRevealedCards(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
+      if (!next.has(id)) {
         next.add(id);
       }
       return next;
     });
+    setFocusedCardId(id);
+  };
+
+  const closeFocusedCard = () => {
+    setFocusedCardId(null);
   };
 
   const renderCard = (card: TarotCard, index: number, style: React.CSSProperties) => {
@@ -56,8 +61,6 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
             <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2 text-center z-10">
               <p className="text-xs font-bold text-red-500 mb-1">{card.positionName}</p>
               <p className="text-xs text-zinc-200">{card.name}</p>
-              {card.elementalDignity && <p className="text-[10px] text-zinc-400 mt-2">Elem: {card.elementalDignity}</p>}
-              {card.numerologicalEmanation && <p className="text-[10px] text-zinc-400">Num: {card.numerologicalEmanation}</p>}
             </div>
           </div>
         </div>
@@ -185,9 +188,64 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     );
   };
 
-  if (spread.type === 'Shadow Work') return renderShadowWorkSpread();
-  if (spread.type === 'Hecate\'s Crossroads') return renderCrossroadsSpread();
-  if (spread.type === 'Psychological Webbing') return renderPsychologicalWebbingSpread();
-  
-  return renderLinearSpread();
+  const focusedCard = spread.cards.find(c => c.id === focusedCardId);
+
+  return (
+    <>
+      {spread.type === 'Shadow Work' && renderShadowWorkSpread()}
+      {spread.type === 'Hecate\'s Crossroads' && renderCrossroadsSpread()}
+      {spread.type === 'Psychological Webbing' && renderPsychologicalWebbingSpread()}
+      {spread.type !== 'Shadow Work' && spread.type !== 'Hecate\'s Crossroads' && spread.type !== 'Psychological Webbing' && renderLinearSpread()}
+
+      {focusedCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-8" onClick={closeFocusedCard}>
+          <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 max-w-5xl w-full h-full" onClick={e => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors" onClick={closeFocusedCard}>
+              <X size={32} />
+            </button>
+            
+            {/* Large Card */}
+            <div className="relative w-64 h-96 md:w-96 md:h-[36rem] flex-shrink-0">
+              <div className="w-full h-full bg-zinc-900 border-2 border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
+                {focusedCard.base64Image ? (
+                  <img src={`data:image/jpeg;base64,${focusedCard.base64Image}`} alt={focusedCard.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center p-4 text-center text-zinc-400">
+                    {focusedCard.name}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Card Qualities */}
+            <div className="flex flex-col justify-center max-w-md bg-zinc-900/80 p-6 md:p-8 rounded-xl border border-zinc-800 shadow-xl">
+              <p className="text-red-500 font-mono text-sm uppercase tracking-widest mb-2">{focusedCard.positionName}</p>
+              <h2 className="text-3xl md:text-4xl font-serif text-zinc-100 mb-6">{focusedCard.name}</h2>
+              
+              <div className="space-y-4">
+                {focusedCard.elementalDignity && (
+                  <div>
+                    <h3 className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Elemental Dignity</h3>
+                    <p className="text-zinc-300">{focusedCard.elementalDignity}</p>
+                  </div>
+                )}
+                {focusedCard.numerologicalEmanation && (
+                  <div>
+                    <h3 className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Numerological Emanation</h3>
+                    <p className="text-zinc-300">{focusedCard.numerologicalEmanation}</p>
+                  </div>
+                )}
+                {focusedCard.cardNumber && (
+                  <div>
+                    <h3 className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Card Number</h3>
+                    <p className="text-zinc-300">{focusedCard.cardNumber}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 };

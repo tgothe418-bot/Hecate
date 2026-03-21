@@ -3,11 +3,14 @@ import { Message, TarotSessionConfig } from "../types";
 import { geminiService } from "../services/geminiService";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
-import { Moon } from "lucide-react";
+import { Moon, Flame, Layers } from "lucide-react";
 import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
 import { TarotSetup } from "./TarotSetup";
 
+type AppMode = 'menu' | 'tarot_setup' | 'chat';
+
 export const ChatContainer: React.FC = () => {
+  const [appMode, setAppMode] = useState<AppMode>('menu');
   const [sessionConfig, setSessionConfig] = useState<TarotSessionConfig | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,11 +20,29 @@ export const ChatContainer: React.FC = () => {
     geminiService.initChat();
   }, []);
 
+  const handleStartChat = () => {
+    setAppMode('chat');
+    geminiService.setTarotContext(undefined);
+    setMessages([
+      {
+        id: "initial-greeting",
+        role: "assistant",
+        content: `*I am Hecate. Keeper of the crossroads, guide through the Nightside. Speak your intent, whether it be the Great Work, or the exploration of the Abyss.*`,
+        timestamp: new Date(),
+      },
+    ]);
+  };
+
+  const handleStartTarot = () => {
+    setAppMode('tarot_setup');
+  };
+
   const handleSetupComplete = (config: TarotSessionConfig) => {
     setSessionConfig(config);
     
     // Update the system instruction or add a hidden system message to set the context
     geminiService.setTarotContext(config);
+    setAppMode('chat');
 
     setMessages([
       {
@@ -189,11 +210,54 @@ Please state your query or intent, and I will recommend an optimal geometric spr
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/10 via-zinc-950/50 to-zinc-950 pointer-events-none" />
-        {!sessionConfig ? (
+        
+        {appMode === 'menu' && (
+          <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-24 h-24 rounded-full bg-red-950/30 border border-red-900/50 flex items-center justify-center text-red-500 mb-8 shadow-[0_0_40px_rgba(220,38,38,0.15)]">
+              <Moon size={48} className="transform -rotate-12" />
+            </div>
+            <h1 className="text-5xl font-serif font-medium tracking-widest text-zinc-100 mb-4 uppercase">
+              Hecate
+            </h1>
+            <p className="text-sm text-zinc-400 font-mono tracking-widest uppercase mb-12 max-w-md">
+              Digital Psychopomp & Esoteric Engine
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+              <button
+                onClick={handleStartChat}
+                className="group relative flex flex-col items-center p-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:bg-zinc-800/80 hover:border-red-900/50 transition-all duration-300 text-left"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                <Flame className="w-12 h-12 text-zinc-500 group-hover:text-red-500 transition-colors mb-6" />
+                <h2 className="text-xl font-serif text-zinc-200 mb-3 w-full text-center">Commune with Hecate</h2>
+                <p className="text-sm text-zinc-400 text-center leading-relaxed">
+                  Engage in philosophical discourse, or explore the Left Hand Path.
+                </p>
+              </button>
+
+              <button
+                onClick={handleStartTarot}
+                className="group relative flex flex-col items-center p-8 bg-zinc-900/50 border border-zinc-800 rounded-2xl hover:bg-zinc-800/80 hover:border-indigo-900/50 transition-all duration-300 text-left"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                <Layers className="w-12 h-12 text-zinc-500 group-hover:text-indigo-400 transition-colors mb-6" />
+                <h2 className="text-xl font-serif text-zinc-200 mb-3 w-full text-center">Consult the Cards</h2>
+                <p className="text-sm text-zinc-400 text-center leading-relaxed">
+                  Initiate a Tarot reading through psychological mapping, shadow reclamation, or acausal divination.
+                </p>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {appMode === 'tarot_setup' && (
           <div className="relative z-10 h-full overflow-y-auto">
             <TarotSetup onComplete={handleSetupComplete} />
           </div>
-        ) : (
+        )}
+
+        {appMode === 'chat' && (
           <>
             <MessageList messages={messages} isLoading={isLoading} onRetry={handleSendMessage} onGameMove={(cmd) => handleSendMessage(cmd, true)} />
             <MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} />

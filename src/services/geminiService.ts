@@ -116,7 +116,7 @@ class GeminiService {
     this.starGameEngine = new StarGameEngine();
   }
 
-  setTarotContext(config: TarotSessionConfig) {
+  setTarotContext(config?: TarotSessionConfig) {
     this.tarotConfig = config;
     // Re-initialize chat with new context
     this.initChat();
@@ -153,7 +153,7 @@ class GeminiService {
     }
 
     try {
-      let response = await this.chatSession!.sendMessage({ message });
+      let response = await this.chatSession!.sendMessage(message);
       
       // Handle function calls
       while (response.functionCalls && response.functionCalls.length > 0) {
@@ -248,12 +248,21 @@ class GeminiService {
                 }
               });
             }
+          } else {
+            functionResponses.push({
+              functionResponse: {
+                name: call.name,
+                response: { error: "Unknown function call" }
+              }
+            });
           }
         }
         
-        response = await this.chatSession!.sendMessage({
-          message: functionResponses as any
-        });
+        if (functionResponses.length === 0) {
+          break;
+        }
+        
+        response = await this.chatSession!.sendMessage(functionResponses);
       }
 
       return response.text || "I have nothing to say at this moment.";
@@ -270,25 +279,21 @@ class GeminiService {
    * Integrates 'Nano Banana 2' (gemini-3.1-flash-image-preview) for Tarot Card Art Generation
    * Utilizes a 3:4 aspect ratio standard for Tarot cards.
    */
-  async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, stylePrompt: string = "Dark esoteric, highly detailed, occult tarot card art, sinister aesthetic, chiaroscuro lighting, mystical symbols"): Promise<string> {
+  async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, stylePrompt: string = "Highly detailed, esoteric tarot card art, mystical aesthetic, chiaroscuro lighting, symbolic"): Promise<string> {
     try {
       const numberPrompt = cardNumber ? ` Include the number '${cardNumber}' in a central location at the top of the card.` : ` Include the traditional card number in a central location at the top of the card.`;
-      const fullPrompt = `Create tarot card art for '${cardName}'. Context: ${esotericContext}. Style: ${stylePrompt}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
+      const fullPrompt = `Create tarot card art for '${cardName}'. Style: ${stylePrompt}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
       
       // Create a new instance to ensure it uses the latest API_KEY from the dialog
       const imageAi = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY });
 
       const response = await imageAi.models.generateContent({
         model: 'gemini-3.1-flash-image-preview',
-        contents: {
-          parts: [
-            { text: fullPrompt }
-          ]
-        },
+        contents: fullPrompt,
         config: {
           imageConfig: {
             aspectRatio: "3:4",
-            imageSize: "2K"
+            imageSize: "1K"
           }
         }
       });
@@ -298,6 +303,7 @@ class GeminiService {
           return part.inlineData.data; // Base64 string
         }
       }
+      console.error("No image generated. Response:", JSON.stringify(response, null, 2));
       throw new Error("No image generated.");
     } catch (error) {
       if (error instanceof Error && error.message.includes("Requested entity was not found.")) {
