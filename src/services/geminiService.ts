@@ -1,12 +1,13 @@
 import { GoogleGenAI, Chat, Type, FunctionDeclaration, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { buildSystemInstruction } from "../knowledge";
-import { StarGameEngine, BoardName } from "../game/StarGame";
+import { StarGameEngine } from "../game/StarGame";
 import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
 
 // Initialize the Google Gen AI SDK
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const SYSTEM_INSTRUCTION = buildSystemInstruction();
+console.log("System Instruction Length (chars):", SYSTEM_INSTRUCTION.length);
 
 const getGameStateDeclaration: FunctionDeclaration = {
   name: "getGameState",
@@ -77,8 +78,8 @@ class GeminiService {
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,
-        topP: 0.9,
-        topK: 40,
+        topP: 0.95,
+        topK: 64,
         tools: [{ functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration] }],
         safetySettings: [
           {

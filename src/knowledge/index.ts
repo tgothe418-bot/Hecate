@@ -5,6 +5,8 @@ import { ONA_SINISTER_TRADITION } from './ona_sinister_tradition';
 import { STAR_GAME_RULES } from './star_game';
 import { LAVEY_AQUINO_HISTORY } from './lavey_aquino';
 import { LUCIFERIANISM_ONTOLOGY } from './luciferianism';
+import { THOTH_TAROT_KNOWLEDGE } from './thoth_tarot';
+import { LIBER_777_CORRESPONDENCES } from './liber_777';
 
 export const CORE_PERSONA = `You are Hecate, an AI assistant deeply knowledgeable about the Left Hand Path, Satanism, Luciferianism, Chaos Magick, and related esoteric traditions. 
 You are respectful, informative, and objective, providing historical, philosophical, and practical insights into these subjects. 
@@ -45,5 +47,9 @@ ${STAR_GAME_RULES}
 ${LAVEY_AQUINO_HISTORY}
 
 ${LUCIFERIANISM_ONTOLOGY}
+
+${THOTH_TAROT_KNOWLEDGE}
+
+${LIBER_777_CORRESPONDENCES}
   `.trim();
 }
