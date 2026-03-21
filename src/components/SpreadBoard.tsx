@@ -32,7 +32,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     return (
       <div 
         key={card.id} 
-        className="absolute w-24 h-36 sm:w-32 sm:h-48 cursor-pointer group"
+        className="absolute w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 cursor-pointer group"
         style={style}
         onClick={() => toggleCard(card.id)}
       >
@@ -92,7 +92,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     ];
 
     return (
-      <div className="relative w-full max-w-2xl mx-auto h-[600px] my-8">
+      <div className="relative w-full max-w-4xl mx-auto h-[800px] md:h-[1000px] my-8">
         {spread.cards.map((card, i) => renderCard(card, i, positions[i] || { left: 0, top: 0 }))}
       </div>
     );
@@ -114,7 +114,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     ];
 
     return (
-      <div className="relative w-full max-w-2xl mx-auto h-[600px] my-8">
+      <div className="relative w-full max-w-4xl mx-auto h-[800px] md:h-[1000px] my-8">
         {spread.cards.map((card, i) => renderCard(card, i, positions[i] || { left: 0, top: 0 }))}
       </div>
     );
@@ -162,7 +162,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     });
 
     return (
-      <div className="relative w-full max-w-3xl mx-auto h-[700px] my-8 border border-zinc-800/50 rounded-xl bg-zinc-950/30 overflow-hidden">
+      <div className="relative w-full max-w-5xl mx-auto h-[900px] md:h-[1100px] my-8 border border-zinc-800/50 rounded-xl bg-zinc-950/30 overflow-hidden">
         {/* SVG lines connecting the nodes */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30">
           {spread.cards.map((_, i) => {
@@ -199,13 +199,13 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
       {focusedCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-8" onClick={closeFocusedCard}>
-          <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 max-w-5xl w-full h-full" onClick={e => e.stopPropagation()}>
+          <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 max-w-7xl w-full h-full" onClick={e => e.stopPropagation()}>
             <button className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors" onClick={closeFocusedCard}>
               <X size={32} />
             </button>
             
             {/* Large Card */}
-            <div className="relative w-64 h-96 md:w-96 md:h-[36rem] flex-shrink-0">
+            <div className="relative h-[70vh] md:h-[85vh] aspect-[3/4] flex-shrink-0">
               <div className="w-full h-full bg-zinc-900 border-2 border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
                 {focusedCard.base64Image ? (
                   <img src={`data:image/jpeg;base64,${focusedCard.base64Image}`} alt={focusedCard.name} className="w-full h-full object-cover" />

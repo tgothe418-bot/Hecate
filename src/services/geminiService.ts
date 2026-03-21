@@ -295,18 +295,21 @@ class GeminiService {
       
       const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
 
-      const response = await imageAi.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: fullPrompt,
+      const response = await imageAi.models.generateContent({
+        model: 'gemini-3.1-flash-image-preview',
+        contents: fullPrompt,
         config: {
-          numberOfImages: 1,
-          aspectRatio: "3:4",
-          outputMimeType: "image/jpeg"
+          imageConfig: {
+            aspectRatio: "3:4",
+            imageSize: "4K"
+          }
         }
       });
 
-      if (response.generatedImages && response.generatedImages.length > 0) {
-        return response.generatedImages[0].image.imageBytes;
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          return part.inlineData.data; // Base64 string
+        }
       }
       
       throw new Error("No image generated.");
