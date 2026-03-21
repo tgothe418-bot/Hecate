@@ -4,8 +4,14 @@ import { StarGameEngine } from "../game/StarGame";
 import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
 import { TarotSessionConfig } from "../types";
 
-// Initialize the Google Gen AI SDK
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize the Google Gen AI SDK safely
+const getApiKey = () => {
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.GEMINI_API_KEY || process.env.API_KEY;
+  }
+  return undefined;
+};
+const ai = new GoogleGenAI({ apiKey: getApiKey() });
 
 const getGameStateDeclaration: FunctionDeclaration = {
   name: "getGameState",
@@ -153,7 +159,7 @@ class GeminiService {
     }
 
     try {
-      let response = await this.chatSession!.sendMessage(message);
+      let response = await this.chatSession!.sendMessage({ message });
       
       // Handle function calls
       while (response.functionCalls && response.functionCalls.length > 0) {
@@ -208,19 +214,22 @@ class GeminiService {
           } else if (call.name === "conductTarotReading") {
             const args = call.args as any;
             try {
-              // Generate images for all cards in parallel
-              const cardsWithImages = await Promise.all(args.cards.map(async (card: any, index: number) => {
+              // Generate images sequentially to avoid 429 Rate Limit errors
+              const cardsWithImages = [];
+              for (let index = 0; index < args.cards.length; index++) {
+                const card = args.cards[index];
                 const base64Image = await this.generateTarotImage(card.name, TAROT_KNOWLEDGE, card.cardNumber);
-                return {
+                cardsWithImages.push({
                   id: `card-${index}-${Date.now()}`,
                   name: card.name,
                   positionName: card.positionName,
                   elementalDignity: card.elementalDignity,
                   numerologicalEmanation: card.numerologicalEmanation,
+                  cardNumber: card.cardNumber,
                   base64Image,
                   isRevealed: false
-                };
-              }));
+                });
+              }
 
               const spread = {
                 type: args.spreadType,
@@ -262,7 +271,7 @@ class GeminiService {
           break;
         }
         
-        response = await this.chatSession!.sendMessage(functionResponses);
+        response = await this.chatSession!.sendMessage({ message: functionResponses as any });
       }
 
       return response.text || "I have nothing to say at this moment.";
@@ -284,33 +293,29 @@ class GeminiService {
       const numberPrompt = cardNumber ? ` Include the number '${cardNumber}' in a central location at the top of the card.` : ` Include the traditional card number in a central location at the top of the card.`;
       const fullPrompt = `Create tarot card art for '${cardName}'. Style: ${stylePrompt}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
       
-      // Create a new instance to ensure it uses the latest API_KEY from the dialog
-      const imageAi = new GoogleGenAI({ apiKey: process.env.API_KEY || process.env.GEMINI_API_KEY });
+      const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
 
-      const response = await imageAi.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
-        contents: fullPrompt,
+      const response = await imageAi.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: fullPrompt,
         config: {
-          imageConfig: {
-            aspectRatio: "3:4",
-            imageSize: "1K"
-          }
+          numberOfImages: 1,
+          aspectRatio: "3:4",
+          outputMimeType: "image/jpeg"
         }
       });
 
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          return part.inlineData.data; // Base64 string
-        }
+      if (response.generatedImages && response.generatedImages.length > 0) {
+        return response.generatedImages[0].image.imageBytes;
       }
-      console.error("No image generated. Response:", JSON.stringify(response, null, 2));
+      
       throw new Error("No image generated.");
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("Requested entity was not found.")) {
+    } catch (error: any) {
+      console.error("Error generating Tarot image:", error);
+      if (error.status === 401 || (error.message && error.message.includes("API key"))) {
         throw new Error("API_KEY_INVALID");
       }
-      console.error("Error generating Tarot image:", error);
-      throw new Error("Failed to materialize the visual archetype.");
+      throw new Error(`Failed to materialize the visual archetype: ${error.message}`);
     }
   }
   public getStarGameEngine(): StarGameEngine {

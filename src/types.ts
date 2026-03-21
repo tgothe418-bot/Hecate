@@ -24,6 +24,7 @@ export interface TarotCard {
   base64Image?: string;
   elementalDignity?: string;
   numerologicalEmanation?: string;
+  cardNumber?: string;
   isRevealed: boolean;
   x?: number; // For absolute positioning
   y?: number; // For absolute positioning
