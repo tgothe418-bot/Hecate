@@ -1,27 +1,39 @@
 import React, { useState, useEffect } from "react";
-import { Message } from "../types";
+import { Message, TarotSessionConfig } from "../types";
 import { geminiService } from "../services/geminiService";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { Moon } from "lucide-react";
 import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
+import { TarotSetup } from "./TarotSetup";
 
 export const ChatContainer: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "initial-greeting",
-      role: "assistant",
-      content:
-        "Greetings. I am Hecate. How may I guide you on the Left Hand Path today? You may also request a visual manifestation by typing `/draw [Card Name]`.",
-      timestamp: new Date(),
-    },
-  ]);
+  const [sessionConfig, setSessionConfig] = useState<TarotSessionConfig | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Initialize chat session on component mount
     geminiService.initChat();
   }, []);
+
+  const handleSetupComplete = (config: TarotSessionConfig) => {
+    setSessionConfig(config);
+    
+    // Update the system instruction or add a hidden system message to set the context
+    geminiService.setTarotContext(config);
+
+    setMessages([
+      {
+        id: "initial-greeting",
+        role: "assistant",
+        content: `Greetings. I am Hecate. You have selected the **${config.deckArchitecture}** architecture for the purpose of **${config.operativeModel}**. 
+
+Please state your query or intent, and I will recommend an optimal geometric spread for our working.`,
+        timestamp: new Date(),
+      },
+    ]);
+  };
 
   const handleSendMessage = async (content: string, silent: boolean = false) => {
     if (!silent) {
@@ -87,17 +99,32 @@ export const ChatContainer: React.FC = () => {
         }
       } else {
         try {
-          const responseText = await geminiService.sendMessage(content, (base64Image) => {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: Date.now().toString() + Math.random().toString(),
-                role: "assistant",
-                content: `data:image/jpeg;base64,${base64Image}`,
-                timestamp: new Date(),
-              },
-            ]);
-          });
+          const responseText = await geminiService.sendMessage(
+            content, 
+            (base64Image) => {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: Date.now().toString() + Math.random().toString(),
+                  role: "assistant",
+                  content: `data:image/jpeg;base64,${base64Image}`,
+                  timestamp: new Date(),
+                },
+              ]);
+            },
+            (spread) => {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: Date.now().toString() + Math.random().toString(),
+                  role: "assistant",
+                  content: `*The cards have been drawn and placed upon the astral board.*`,
+                  timestamp: new Date(),
+                  spread: spread,
+                },
+              ]);
+            }
+          );
 
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -162,8 +189,16 @@ export const ChatContainer: React.FC = () => {
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/10 via-zinc-950/50 to-zinc-950 pointer-events-none" />
-        <MessageList messages={messages} isLoading={isLoading} onRetry={handleSendMessage} onGameMove={(cmd) => handleSendMessage(cmd, true)} />
-        <MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+        {!sessionConfig ? (
+          <div className="relative z-10 h-full overflow-y-auto">
+            <TarotSetup onComplete={handleSetupComplete} />
+          </div>
+        ) : (
+          <>
+            <MessageList messages={messages} isLoading={isLoading} onRetry={handleSendMessage} onGameMove={(cmd) => handleSendMessage(cmd, true)} />
+            <MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+          </>
+        )}
       </main>
     </div>
   );

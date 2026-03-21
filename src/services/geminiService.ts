@@ -2,12 +2,10 @@ import { GoogleGenAI, Chat, Type, FunctionDeclaration, HarmCategory, HarmBlockTh
 import { buildSystemInstruction } from "../knowledge";
 import { StarGameEngine } from "../game/StarGame";
 import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
+import { TarotSessionConfig } from "../types";
 
 // Initialize the Google Gen AI SDK
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-const SYSTEM_INSTRUCTION = buildSystemInstruction();
-console.log("System Instruction Length (chars):", SYSTEM_INSTRUCTION.length);
 
 const getGameStateDeclaration: FunctionDeclaration = {
   name: "getGameState",
@@ -47,7 +45,7 @@ const movePieceDeclaration: FunctionDeclaration = {
 
 const drawTarotCardDeclaration: FunctionDeclaration = {
   name: "drawTarotCard",
-  description: "Draw a tarot card and generate its image to show to the user. ALWAYS use this when conducting a tarot reading to visually manifest each card one at a time.",
+  description: "Draw a single tarot card and generate its image to show to the user. Use this for single card draws.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -64,23 +62,77 @@ const drawTarotCardDeclaration: FunctionDeclaration = {
   },
 };
 
+const conductTarotReadingDeclaration: FunctionDeclaration = {
+  name: "conductTarotReading",
+  description: "Conduct a full tarot reading using a specific spread. Use this when the user asks for a reading or spread. The system will generate images for all cards and display them in the requested geometric layout.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      spreadType: {
+        type: Type.STRING,
+        description: "The type of spread to use ('Shadow Work', 'Hecate\\'s Crossroads', 'Psychological Webbing', or 'Linear').",
+      },
+      cards: {
+        type: Type.ARRAY,
+        description: "The cards drawn for the spread.",
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: {
+              type: Type.STRING,
+              description: "The name of the tarot card (e.g., 'The Fool', 'Three of Swords').",
+            },
+            positionName: {
+              type: Type.STRING,
+              description: "The name of the position in the spread (e.g., 'Mask', 'Shadow', 'Significator').",
+            },
+            elementalDignity: {
+              type: Type.STRING,
+              description: "The elemental dignity of the card (e.g., 'Fire/Will', 'Water/Emotion').",
+            },
+            numerologicalEmanation: {
+              type: Type.STRING,
+              description: "The numerological emanation of the card.",
+            },
+            cardNumber: {
+              type: Type.STRING,
+              description: "The traditional number of the tarot card (e.g., '0', 'I', 'VIII', '10').",
+            }
+          },
+          required: ["name", "positionName"]
+        }
+      }
+    },
+    required: ["spreadType", "cards"],
+  },
+};
+
 class GeminiService {
   private chatSession: Chat | null = null;
   private starGameEngine: StarGameEngine;
+  private tarotConfig: TarotSessionConfig | null = null;
 
   constructor() {
     this.starGameEngine = new StarGameEngine();
   }
 
+  setTarotContext(config: TarotSessionConfig) {
+    this.tarotConfig = config;
+    // Re-initialize chat with new context
+    this.initChat();
+  }
+
   initChat() {
+    const systemInstruction = buildSystemInstruction(this.tarotConfig || undefined);
+    
     this.chatSession = ai.chats.create({
       model: "gemini-3-flash-preview",
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: systemInstruction,
         temperature: 0.7,
         topP: 0.95,
         topK: 64,
-        tools: [{ functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration] }],
+        tools: [{ functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration, conductTarotReadingDeclaration] }],
         safetySettings: [
           {
             category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -95,7 +147,7 @@ class GeminiService {
     });
   }
 
-  async sendMessage(message: string, onImageGenerated?: (base64Image: string) => void): Promise<string> {
+  async sendMessage(message: string, onImageGenerated?: (base64Image: string) => void, onSpreadGenerated?: (spread: any) => void): Promise<string> {
     if (!this.chatSession) {
       this.initChat();
     }
@@ -149,6 +201,49 @@ class GeminiService {
               functionResponses.push({
                 functionResponse: {
                   name: "drawTarotCard",
+                  response: { success: false, error: error.message }
+                }
+              });
+            }
+          } else if (call.name === "conductTarotReading") {
+            const args = call.args as any;
+            try {
+              // Generate images for all cards in parallel
+              const cardsWithImages = await Promise.all(args.cards.map(async (card: any, index: number) => {
+                const base64Image = await this.generateTarotImage(card.name, TAROT_KNOWLEDGE, card.cardNumber);
+                return {
+                  id: `card-${index}-${Date.now()}`,
+                  name: card.name,
+                  positionName: card.positionName,
+                  elementalDignity: card.elementalDignity,
+                  numerologicalEmanation: card.numerologicalEmanation,
+                  base64Image,
+                  isRevealed: false
+                };
+              }));
+
+              const spread = {
+                type: args.spreadType,
+                cards: cardsWithImages
+              };
+
+              if (onSpreadGenerated) {
+                onSpreadGenerated(spread);
+              }
+
+              functionResponses.push({
+                functionResponse: {
+                  name: "conductTarotReading",
+                  response: { success: true, message: `Spread generated and displayed to the user.` }
+                }
+              });
+            } catch (error: any) {
+              if (error.message === "API_KEY_INVALID") {
+                throw error;
+              }
+              functionResponses.push({
+                functionResponse: {
+                  name: "conductTarotReading",
                   response: { success: false, error: error.message }
                 }
               });
