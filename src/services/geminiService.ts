@@ -9,7 +9,11 @@ import workerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
+// Initialize the Google Gen AI SDK safely for Vite environments
 const getApiKey = () => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) {
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
   if (typeof process !== 'undefined' && process.env) {
     return process.env.GEMINI_API_KEY || process.env.API_KEY;
   }
@@ -276,7 +280,6 @@ class GeminiService {
                   positionName: card.positionName,
                   elementalDignity: card.elementalDignity,
                   numerologicalEmanation: card.numerologicalEmanation,
-                  cardNumber: card.cardNumber,
                   base64Image,
                   isRevealed: false
                 });
@@ -368,26 +371,26 @@ class GeminiService {
       
       const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
 
-      const response = await imageAi.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
-        contents: fullPrompt,
+      const response = await imageAi.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: fullPrompt,
         config: {
-          imageConfig: {
-            aspectRatio: "3:4",
-            imageSize: "4K"
-          }
+          numberOfImages: 1,
+          aspectRatio: "3:4",
+          outputMimeType: "image/jpeg",
+          personGeneration: "ALLOW_ADULT",
+          safetyFilterLevel: "BLOCK_ONLY_HIGH"
         }
       });
 
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          return part.inlineData.data; // Base64 string
-        }
+      if (response.generatedImages && response.generatedImages.length > 0) {
+        return response.generatedImages[0].image.imageBytes;
       }
       
-      throw new Error("No image generated.");
+      throw new Error(`No image generated. Response: ${JSON.stringify(response)}`);
     } catch (error: any) {
       console.error("Error generating Tarot image:", error);
+      // Only flag invalid keys for actual authentication errors, not 404s
       if (error.status === 401 || (error.message && error.message.includes("API key"))) {
         throw new Error("API_KEY_INVALID");
       }
