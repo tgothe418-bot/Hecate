@@ -2,9 +2,13 @@ import { GoogleGenAI, Chat, Type, FunctionDeclaration, HarmCategory, HarmBlockTh
 import { buildSystemInstruction } from "../knowledge";
 import { StarGameEngine } from "../game/StarGame";
 import { TAROT_KNOWLEDGE } from "../knowledge/tarot";
-import { TarotSessionConfig } from "../types";
+import { TarotSessionConfig, Attachment } from "../types";
 
-// Initialize the Google Gen AI SDK safely
+import * as pdfjsLib from 'pdfjs-dist';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+
 const getApiKey = () => {
   if (typeof process !== 'undefined' && process.env) {
     return process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -113,10 +117,27 @@ const conductTarotReadingDeclaration: FunctionDeclaration = {
   },
 };
 
+const extractImageFromPdfDeclaration: FunctionDeclaration = {
+  name: "extractImageFromPdf",
+  description: "When a PDF is uploaded, scan its content for visual references and illustrations. For each relevant illustration found, call this tool with the corresponding page number to extract and display it within the response. Do not generate new artwork.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      pageNumber: {
+        type: Type.NUMBER,
+        description: "The page number of the PDF to extract as an image (1-indexed).",
+      },
+    },
+    required: ["pageNumber"],
+  },
+};
+
 class GeminiService {
   private chatSession: Chat | null = null;
   private starGameEngine: StarGameEngine;
   private tarotConfig: TarotSessionConfig | null = null;
+
+  private lastUploadedPdf: string | null = null;
 
   constructor() {
     this.starGameEngine = new StarGameEngine();
@@ -138,7 +159,7 @@ class GeminiService {
         temperature: 0.7,
         topP: 0.95,
         topK: 64,
-        tools: [{ functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration, conductTarotReadingDeclaration] }],
+        tools: [{ functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration, conductTarotReadingDeclaration, extractImageFromPdfDeclaration] }],
         safetySettings: [
           {
             category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -153,19 +174,46 @@ class GeminiService {
     });
   }
 
-  async sendMessage(message: string, onImageGenerated?: (base64Image: string) => void, onSpreadGenerated?: (spread: any) => void): Promise<string> {
+  async sendMessage(
+    message: string, 
+    attachments?: Attachment[], 
+    onImageGenerated?: (base64Image: string) => void, 
+    onSpreadGenerated?: (spread: any) => void,
+    onThought?: (thought: string) => void
+  ): Promise<string> {
     if (!this.chatSession) {
       this.initChat();
     }
 
     try {
-      let response = await this.chatSession!.sendMessage({ message });
+      let contentParts: any[] = [];
+      if (message) {
+        contentParts.push({ text: message });
+      }
+      if (attachments && attachments.length > 0) {
+        attachments.forEach(att => {
+          if (att.mimeType === 'application/pdf') {
+            this.lastUploadedPdf = att.data;
+          }
+          contentParts.push({
+            inlineData: {
+              data: att.data,
+              mimeType: att.mimeType
+            }
+          });
+        });
+      }
+
+      if (contentParts.length === 0) return "I have nothing to say at this moment.";
+
+      let response = await this.chatSession!.sendMessage({ message: contentParts as any });
       
       // Handle function calls
       while (response.functionCalls && response.functionCalls.length > 0) {
         const functionResponses: any[] = [];
         for (const call of response.functionCalls) {
           if (call.name === "getGameState") {
+            if (onThought) onThought("Analyzing the Star Game state...");
             const state = this.starGameEngine.state;
             functionResponses.push({
               functionResponse: {
@@ -175,6 +223,7 @@ class GeminiService {
             });
           } else if (call.name === "movePiece") {
             const args = call.args as any;
+            if (onThought) onThought(`Moving piece ${args.pieceId}...`);
             const success = this.starGameEngine.movePiece(
               args.pieceId,
               args.targetX,
@@ -189,6 +238,7 @@ class GeminiService {
             });
           } else if (call.name === "drawTarotCard") {
             const args = call.args as any;
+            if (onThought) onThought(`Drawing tarot card: ${args.cardName}...`);
             try {
               const base64Image = await this.generateTarotImage(args.cardName, TAROT_KNOWLEDGE, args.cardNumber);
               if (onImageGenerated) {
@@ -213,6 +263,7 @@ class GeminiService {
             }
           } else if (call.name === "conductTarotReading") {
             const args = call.args as any;
+            if (onThought) onThought(`Conducting ${args.spreadType} reading...`);
             try {
               // Generate images sequentially to avoid 429 Rate Limit errors
               const cardsWithImages = [];
@@ -253,6 +304,28 @@ class GeminiService {
               functionResponses.push({
                 functionResponse: {
                   name: "conductTarotReading",
+                  response: { success: false, error: error.message }
+                }
+              });
+            }
+          } else if (call.name === "extractImageFromPdf") {
+            const args = call.args as any;
+            if (onThought) onThought(`Extracting page ${args.pageNumber} from PDF...`);
+            try {
+              const base64Image = await this.extractImageFromPdf(args.pageNumber);
+              if (onImageGenerated) {
+                onImageGenerated(base64Image);
+              }
+              functionResponses.push({
+                functionResponse: {
+                  name: "extractImageFromPdf",
+                  response: { success: true, message: `Image of page ${args.pageNumber} successfully extracted and shown to the user.` }
+                }
+              });
+            } catch (error: any) {
+              functionResponses.push({
+                functionResponse: {
+                  name: "extractImageFromPdf",
                   response: { success: false, error: error.message }
                 }
               });
@@ -321,6 +394,51 @@ class GeminiService {
       throw new Error(`Failed to materialize the visual archetype: ${error.message}`);
     }
   }
+
+  async extractImageFromPdf(pageNumber: number): Promise<string> {
+    if (!this.lastUploadedPdf) {
+      throw new Error("No PDF has been uploaded.");
+    }
+    
+    try {
+      const pdfData = atob(this.lastUploadedPdf);
+      const uint8Array = new Uint8Array(pdfData.length);
+      for (let i = 0; i < pdfData.length; i++) {
+        uint8Array[i] = pdfData.charCodeAt(i);
+      }
+
+      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+      const pdf = await loadingTask.promise;
+      
+      if (pageNumber < 1 || pageNumber > pdf.numPages) {
+        throw new Error(`Invalid page number. The PDF has ${pdf.numPages} pages.`);
+      }
+
+      const page = await pdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 2.0 }); // High resolution
+
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error("Could not create canvas context");
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+
+      await page.render(renderContext).promise;
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      return dataUrl.split(',')[1]; // Return base64 part
+    } catch (error: any) {
+      console.error("Error extracting image from PDF:", error);
+      throw new Error(`Failed to extract image from PDF: ${error.message}`);
+    }
+  }
+
   public getStarGameEngine(): StarGameEngine {
     return this.starGameEngine;
   }

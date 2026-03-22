@@ -13,6 +13,10 @@ export const TarotSetup: React.FC<TarotSetupProps> = ({ onComplete }) => {
     onComplete({ deckArchitecture: deck, operativeModel: model });
   };
 
+  const handleHecatesChoice = () => {
+    onComplete({ deckArchitecture: 'Standard/Orthodox (Rider-Waite-Smith)', operativeModel: 'Psychological Mapping', isHecatesChoice: true });
+  };
+
   return (
     <div className="flex flex-col items-center justify-center h-full bg-zinc-950 text-zinc-100 font-sans p-6">
       <div className="max-w-2xl w-full bg-zinc-900 border border-zinc-800 rounded-xl p-8 shadow-2xl">
@@ -102,12 +106,20 @@ export const TarotSetup: React.FC<TarotSetupProps> = ({ onComplete }) => {
           </div>
         </div>
 
-        <button 
-          onClick={handleStart}
-          className="w-full py-3 bg-red-950 hover:bg-red-900 border border-red-800 text-white rounded-lg transition-colors font-medium tracking-wide uppercase text-sm"
-        >
-          Initialize Session
-        </button>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button 
+            onClick={handleStart}
+            className="flex-1 py-3 bg-red-950 hover:bg-red-900 border border-red-800 text-white rounded-lg transition-colors font-medium tracking-wide uppercase text-sm"
+          >
+            Initialize Session
+          </button>
+          <button 
+            onClick={handleHecatesChoice}
+            className="flex-1 py-3 bg-indigo-950 hover:bg-indigo-900 border border-indigo-800 text-white rounded-lg transition-colors font-medium tracking-wide uppercase text-sm"
+          >
+            Hecate's Choice
+          </button>
+        </div>
       </div>
     </div>
   );

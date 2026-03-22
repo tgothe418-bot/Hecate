@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Message, TarotSessionConfig } from "../types";
+import { Message, TarotSessionConfig, Attachment } from "../types";
 import { geminiService } from "../services/geminiService";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
@@ -14,6 +14,7 @@ export const ChatContainer: React.FC = () => {
   const [sessionConfig, setSessionConfig] = useState<TarotSessionConfig | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [thoughtProcess, setThoughtProcess] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     // Initialize chat session on component mount
@@ -44,30 +45,45 @@ export const ChatContainer: React.FC = () => {
     geminiService.setTarotContext(config);
     setAppMode('chat');
 
-    setMessages([
-      {
-        id: "initial-greeting",
-        role: "assistant",
-        content: `Greetings. I am Hecate. You have selected the **${config.deckArchitecture}** architecture for the purpose of **${config.operativeModel}**. 
+    if (config.isHecatesChoice) {
+      setMessages([
+        {
+          id: "initial-greeting",
+          role: "assistant",
+          content: `Greetings. I am Hecate. You have surrendered the operative framework to my design. 
+
+Please state your query or intent, and I will autonomously select the optimal deck, model, and geometric spread for our working.`,
+          timestamp: new Date(),
+        },
+      ]);
+    } else {
+      setMessages([
+        {
+          id: "initial-greeting",
+          role: "assistant",
+          content: `Greetings. I am Hecate. You have selected the **${config.deckArchitecture}** architecture for the purpose of **${config.operativeModel}**. 
 
 Please state your query or intent, and I will recommend an optimal geometric spread for our working.`,
-        timestamp: new Date(),
-      },
-    ]);
+          timestamp: new Date(),
+        },
+      ]);
+    }
   };
 
-  const handleSendMessage = async (content: string, silent: boolean = false) => {
+  const handleSendMessage = async (content: string, attachments?: Attachment[], silent: boolean = false) => {
     if (!silent) {
       const userMessage: Message = {
         id: Date.now().toString(),
         role: "user",
         content,
         timestamp: new Date(),
+        attachments,
       };
 
       setMessages((prev) => [...prev, userMessage]);
     }
     setIsLoading(true);
+    setThoughtProcess("Communing with the esoteric realms...");
 
     try {
       if (content.trim() === "/play_stargame") {
@@ -122,6 +138,7 @@ Please state your query or intent, and I will recommend an optimal geometric spr
         try {
           const responseText = await geminiService.sendMessage(
             content, 
+            attachments,
             (base64Image) => {
               setMessages((prev) => [
                 ...prev,
@@ -144,7 +161,8 @@ Please state your query or intent, and I will recommend an optimal geometric spr
                   spread: spread,
                 },
               ]);
-            }
+            },
+            (thought) => setThoughtProcess(thought)
           );
 
           const assistantMessage: Message = {
@@ -187,6 +205,7 @@ Please state your query or intent, and I will recommend an optimal geometric spr
       });
     } finally {
       setIsLoading(false);
+      setThoughtProcess(undefined);
     }
   };
 
@@ -259,7 +278,7 @@ Please state your query or intent, and I will recommend an optimal geometric spr
 
         {appMode === 'chat' && (
           <>
-            <MessageList messages={messages} isLoading={isLoading} onRetry={handleSendMessage} onGameMove={(cmd) => handleSendMessage(cmd, true)} />
+            <MessageList messages={messages} isLoading={isLoading} thoughtProcess={thoughtProcess} onRetry={(cmd) => handleSendMessage(cmd)} onGameMove={(cmd) => handleSendMessage(cmd, undefined, true)} />
             <MessageInput onSendMessage={handleSendMessage} isLoading={isLoading} />
           </>
         )}

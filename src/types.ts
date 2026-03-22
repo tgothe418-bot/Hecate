@@ -1,3 +1,9 @@
+export interface Attachment {
+  data: string; // base64
+  mimeType: string;
+  name: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -7,6 +13,7 @@ export interface Message {
   originalCommand?: string;
   isGame?: boolean;
   spread?: Spread;
+  attachments?: Attachment[];
 }
 
 export type DeckArchitecture = 'Standard/Orthodox (Rider-Waite-Smith)' | 'The Book of Thoth (Crowley)';
@@ -15,6 +22,7 @@ export type OperativeModel = 'Psychological Mapping' | 'Shadow Reclamation' | 'D
 export interface TarotSessionConfig {
   deckArchitecture: DeckArchitecture;
   operativeModel: OperativeModel;
+  isHecatesChoice?: boolean;
 }
 
 export interface TarotCard {

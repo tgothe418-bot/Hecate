@@ -5,6 +5,7 @@ import { MessageBubble } from "./MessageBubble";
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
+  thoughtProcess?: string;
   onRetry?: (command: string) => void;
   onGameMove?: (command: string) => void;
 }
@@ -12,6 +13,7 @@ interface MessageListProps {
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isLoading,
+  thoughtProcess,
   onRetry,
   onGameMove,
 }) => {
@@ -39,7 +41,7 @@ export const MessageList: React.FC<MessageListProps> = ({
         ))}
         {isLoading && (
           <div className="flex justify-start mb-4">
-            <div className="flex max-w-[80%] flex-row items-start gap-3">
+            <div className="flex max-w-[80%] flex-row items-center gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-red-950 text-red-400">
                 <div
                   className="w-1.5 h-1.5 bg-red-400 rounded-full animate-bounce"
@@ -54,6 +56,11 @@ export const MessageList: React.FC<MessageListProps> = ({
                   style={{ animationDelay: "300ms" }}
                 />
               </div>
+              {thoughtProcess && (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-2 text-sm text-zinc-400 animate-pulse">
+                  {thoughtProcess}
+                </div>
+              )}
             </div>
           </div>
         )}

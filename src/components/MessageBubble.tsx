@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Message } from "../types";
-import { Bot, User, RefreshCw, Maximize2, X } from "lucide-react";
+import { Bot, User, RefreshCw, Maximize2, X, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { StarGameBoard } from "./StarGameBoard";
 import { geminiService } from "../services/geminiService";
@@ -14,6 +14,7 @@ interface MessageBubbleProps {
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, onGameMove }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const isUser = message.role === "user";
   const isImage = message.content.startsWith("data:image/");
 
@@ -40,10 +41,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
                   alt="Generated Tarot Card" 
                   className="max-w-sm rounded-lg shadow-md border border-red-900/50 cursor-pointer transition-transform hover:scale-[1.02]"
                   referrerPolicy="no-referrer"
-                  onClick={() => setIsExpanded(true)}
+                  onClick={() => {
+                    setExpandedImage(message.content);
+                    setIsExpanded(true);
+                  }}
                 />
                 <button 
-                  onClick={() => setIsExpanded(true)}
+                  onClick={() => {
+                    setExpandedImage(message.content);
+                    setIsExpanded(true);
+                  }}
                   className="absolute top-2 right-2 p-2 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
                   aria-label="Expand image"
                 >
@@ -68,8 +75,36 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
                 <SpreadBoard spread={message.spread} />
               </div>
             ) : (
-              <div className="prose prose-invert prose-sm max-w-none">
-                <ReactMarkdown>{message.content}</ReactMarkdown>
+              <div className="flex flex-col gap-4">
+                {message.attachments && message.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {message.attachments.map((att, i) => (
+                      <div key={i} className="relative group">
+                        {att.mimeType.startsWith('image/') ? (
+                          <img 
+                            src={`data:${att.mimeType};base64,${att.data}`} 
+                            alt={att.name} 
+                            className="max-w-[200px] max-h-[200px] object-cover rounded-lg shadow-md border border-zinc-700 cursor-pointer transition-transform hover:scale-[1.02]"
+                            onClick={() => {
+                              setExpandedImage(`data:${att.mimeType};base64,${att.data}`);
+                              setIsExpanded(true);
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-md p-3">
+                            <FileText size={24} className="text-zinc-400" />
+                            <span className="text-sm text-zinc-300 truncate max-w-[150px]">{att.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {message.content && (
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
+                )}
               </div>
             )}
             {message.isError && message.originalCommand && onRetry && (
@@ -94,23 +129,27 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
       </div>
 
       {/* Fullscreen Modal */}
-      {isExpanded && isImage && (
+      {isExpanded && expandedImage && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 sm:p-8"
-          onClick={() => setIsExpanded(false)}
+          onClick={() => {
+            setIsExpanded(false);
+            setExpandedImage(null);
+          }}
         >
           <button 
             className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white bg-zinc-900/50 hover:bg-zinc-800 rounded-full transition-colors z-50"
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(false);
+              setExpandedImage(null);
             }}
           >
             <X size={24} />
           </button>
           <img 
-            src={message.content} 
-            alt="Expanded Tarot Card" 
+            src={expandedImage} 
+            alt="Expanded Image" 
             className="max-w-full max-h-full object-contain rounded-md shadow-2xl"
             referrerPolicy="no-referrer"
             onClick={(e) => e.stopPropagation()}
