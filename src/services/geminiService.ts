@@ -371,26 +371,33 @@ class GeminiService {
       
       const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
 
-      const response = await imageAi.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: fullPrompt,
+      const response = await imageAi.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [
+            { text: fullPrompt }
+          ]
+        },
         config: {
-          numberOfImages: 1,
-          aspectRatio: "3:4",
-          outputMimeType: "image/jpeg",
-          personGeneration: "ALLOW_ADULT",
-          safetyFilterLevel: "BLOCK_ONLY_HIGH"
+          imageConfig: {
+            aspectRatio: "3:4",
+            numberOfImages: 1
+          }
         }
       });
 
-      if (response.generatedImages && response.generatedImages.length > 0) {
-        return response.generatedImages[0].image.imageBytes;
+      if (response.candidates && response.candidates.length > 0) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            return part.inlineData.data;
+          }
+        }
       }
       
       throw new Error(`No image generated. Response: ${JSON.stringify(response)}`);
     } catch (error: any) {
       console.error("Error generating Tarot image:", error);
-      // Only flag invalid keys for actual authentication errors, not 404s
+      // Stop masking 404s as auth errors. Only flag actual 401s or explicit API key warnings.
       if (error.status === 401 || (error.message && error.message.includes("API key"))) {
         throw new Error("API_KEY_INVALID");
       }
