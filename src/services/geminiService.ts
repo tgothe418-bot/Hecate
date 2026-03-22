@@ -100,6 +100,10 @@ const conductTarotReadingDeclaration: FunctionDeclaration = {
               type: Type.STRING,
               description: "The name of the position in the spread (e.g., 'Mask', 'Shadow', 'Significator').",
             },
+            description: {
+              type: Type.STRING,
+              description: "A detailed description of the card's meaning, elements, and interpretation in this position.",
+            },
             elementalDignity: {
               type: Type.STRING,
               description: "The elemental dignity of the card (e.g., 'Fire/Will', 'Water/Emotion').",
@@ -361,40 +365,63 @@ class GeminiService {
   }
 
   /**
-   * Integrates 'Nano Banana 2' (gemini-3.1-flash-image-preview) for Tarot Card Art Generation
+   * Integrates 'Nano Banana' (gemini-2.5-flash-image) for Tarot Card Art Generation
    * Utilizes a 3:4 aspect ratio standard for Tarot cards.
    */
   async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, stylePrompt: string = "Highly detailed, esoteric tarot card art, mystical aesthetic, chiaroscuro lighting, symbolic, borderless, full bleed edge-to-edge artwork, no white margins"): Promise<string> {
     try {
       const numberPrompt = cardNumber ? ` Include the Roman Numeral '${cardNumber}' prominently centered at the top of the card.` : ` Include the traditional Roman Numeral prominently centered at the top of the card.`;
-      const fullPrompt = `Create tarot card art for '${cardName}'. Style: ${stylePrompt}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
+      const fullPrompt = `A highly detailed tarot card illustration of '${cardName}'. Style: ${stylePrompt}. The title '${cardName}' is elegantly rendered in the image.${numberPrompt}`;
       
       const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
 
-      const response = await imageAi.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [
-            { text: fullPrompt }
-          ]
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: "3:4",
-            numberOfImages: 1
+      const generate = async (promptText: string) => {
+        return await imageAi.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              { text: promptText }
+            ]
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: "3:4"
+            }
           }
-        }
-      });
+        });
+      };
 
-      if (response.candidates && response.candidates.length > 0) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData && part.inlineData.data) {
-            return part.inlineData.data;
+      let response = await generate(fullPrompt);
+
+      const extractImage = (res: any) => {
+        if (res.candidates && res.candidates.length > 0) {
+          const content = res.candidates[0].content;
+          if (content && content.parts) {
+            for (const part of content.parts) {
+              if (part.inlineData && part.inlineData.data) {
+                return part.inlineData.data;
+              }
+            }
           }
         }
+        return null;
+      };
+
+      let base64Image = extractImage(response);
+
+      // If the model returned text without an image, retry once with a more direct prompt
+      if (!base64Image) {
+        console.warn("No image generated on first attempt, retrying with a modified prompt...");
+        const retryPrompt = `Generate an image. Subject: Tarot card '${cardName}'. Style: ${stylePrompt}.`;
+        response = await generate(retryPrompt);
+        base64Image = extractImage(response);
+      }
+
+      if (base64Image) {
+        return base64Image;
       }
       
-      throw new Error(`No image generated. Response: ${JSON.stringify(response)}`);
+      throw new Error(`No image generated. The model may have blocked the request due to safety filters or failed to output an image part.`);
     } catch (error: any) {
       console.error("Error generating Tarot image:", error);
       // Stop masking 404s as auth errors. Only flag actual 401s or explicit API key warnings.

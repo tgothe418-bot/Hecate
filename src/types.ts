@@ -29,6 +29,7 @@ export interface TarotCard {
   id: string;
   name: string;
   positionName: string;
+  description?: string;
   base64Image?: string;
   elementalDignity?: string;
   numerologicalEmanation?: string;

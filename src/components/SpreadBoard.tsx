@@ -29,10 +29,10 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
   const getElementalGlow = (dignity?: string) => {
     if (!dignity) return '';
     const lower = dignity.toLowerCase();
-    if (lower.includes('fire')) return 'drop-shadow(0 0 15px rgba(239, 68, 68, 0.4))';
-    if (lower.includes('water')) return 'drop-shadow(0 0 15px rgba(20, 184, 166, 0.4))';
-    if (lower.includes('earth')) return 'drop-shadow(0 0 15px rgba(202, 138, 4, 0.4))';
-    if (lower.includes('air')) return 'drop-shadow(0 0 15px rgba(250, 250, 249, 0.4))';
+    if (lower.includes('fire')) return '0 0 20px 5px rgba(239, 68, 68, 0.5)';
+    if (lower.includes('water')) return '0 0 20px 5px rgba(20, 184, 166, 0.5)';
+    if (lower.includes('earth')) return '0 0 20px 5px rgba(202, 138, 4, 0.5)';
+    if (lower.includes('air')) return '0 0 20px 5px rgba(250, 250, 249, 0.5)';
     return '';
   };
 
@@ -78,11 +78,10 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
           {/* Card Front */}
           <div 
-            className="absolute w-full h-full backface-hidden bg-zinc-900 rounded-lg shadow-xl overflow-hidden" 
+            className="absolute w-full h-full backface-hidden bg-zinc-900 rounded-lg overflow-hidden" 
             style={{ 
               transform: 'rotateY(180deg)',
-              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)',
-              filter: isRevealed && glow ? glow : 'none'
+              boxShadow: `inset 0 0 20px rgba(0,0,0,0.8)${isRevealed && glow ? `, ${glow}` : ''}`
             }}
           >
             {card.base64Image ? (
@@ -171,11 +170,9 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
   const renderLinearSpread = () => {
     return (
-      <div className="flex flex-wrap justify-center gap-6 my-8">
+      <div className="flex flex-wrap justify-center gap-6 my-8 w-full max-w-6xl mx-auto">
         {spread.cards.map((card, i) => (
-          <div key={card.id} className="relative">
-            {renderCard(card, i, "relative w-[30%] sm:w-[25%] md:w-[20%] lg:w-[16%] aspect-[3/4] cursor-pointer group")}
-          </div>
+          renderCard(card, i, "relative w-[30%] sm:w-[25%] md:w-[20%] lg:w-[16%] aspect-[3/4] cursor-pointer group")
         ))}
       </div>
     );
@@ -235,7 +232,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
       {spread.type !== 'Shadow Work' && spread.type !== 'Hecate\'s Crossroads' && spread.type !== 'Psychological Webbing' && renderLinearSpread()}
 
       {focusedCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-8" onClick={closeFocusedCard}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-8" onClick={closeFocusedCard}>
           <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 max-w-7xl w-full h-full" onClick={e => e.stopPropagation()}>
             <button className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors z-50" onClick={closeFocusedCard}>
               <X size={32} />
@@ -247,10 +244,9 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
               className="relative h-[70vh] md:h-[85vh] aspect-[3/4] flex-shrink-0"
             >
               <div 
-                className="w-full h-full bg-zinc-900 rounded-xl shadow-2xl overflow-hidden"
+                className="w-full h-full bg-zinc-900 rounded-xl overflow-hidden"
                 style={{ 
-                  boxShadow: 'inset 0 0 30px rgba(0,0,0,0.8)',
-                  filter: getElementalGlow(focusedCard.elementalDignity) || 'none'
+                  boxShadow: `inset 0 0 30px rgba(0,0,0,0.8)${focusedCard.elementalDignity && getElementalGlow(focusedCard.elementalDignity) ? `, ${getElementalGlow(focusedCard.elementalDignity)}` : ''}`
                 }}
               >
                 {focusedCard.base64Image ? (
