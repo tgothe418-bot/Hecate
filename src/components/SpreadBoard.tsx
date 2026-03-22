@@ -32,7 +32,8 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     return (
       <div 
         key={card.id} 
-        className="absolute w-32 h-48 sm:w-40 sm:h-60 md:w-48 md:h-72 cursor-pointer group"
+        // Using fluid percentages and strict aspect ratios prevents layout collisions
+        className="absolute w-[25%] sm:w-[20%] md:w-[16%] aspect-[3/4] cursor-pointer group"
         style={style}
         onClick={() => toggleCard(card.id)}
       >
@@ -41,8 +42,9 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
           <div className="absolute w-full h-full backface-hidden bg-zinc-800 border-2 border-zinc-700 rounded-lg shadow-lg flex items-center justify-center overflow-hidden">
             <div className="w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-12 h-12 border border-zinc-600 rounded-full flex items-center justify-center">
-                <div className="w-8 h-8 border border-zinc-600 transform rotate-45"></div>
+              <div className="w-12 h-12 border border-zinc-600 rounded-full flex items-center justify-center bg-zinc-900/50">
+                <div className="absolute w-8 h-8 border border-zinc-600 transform rotate-45"></div>
+                <span className="relative z-10 text-zinc-300 font-serif text-xl">{index + 1}</span>
               </div>
             </div>
           </div>
@@ -59,7 +61,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
             
             {/* Tooltip */}
             <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2 text-center z-10">
-              <p className="text-xs font-bold text-red-500 mb-1">{card.positionName}</p>
+              <p className="text-xs font-bold text-red-500 mb-1">{index + 1}. {card.positionName}</p>
               <p className="text-xs text-zinc-200">{card.name}</p>
             </div>
           </div>
@@ -68,7 +70,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
         {/* Position Label (visible when face down) */}
         {!isRevealed && (
           <div className="absolute -bottom-6 left-0 right-0 text-center text-[10px] text-zinc-500 font-mono uppercase tracking-wider">
-            {card.positionName}
+            <span className="text-red-500/80 mr-1">{index + 1}.</span> {card.positionName}
           </div>
         )}
       </div>
@@ -188,7 +190,8 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     );
   };
 
-  const focusedCard = spread.cards.find(c => c.id === focusedCardId);
+  const focusedCardIndex = spread.cards.findIndex(c => c.id === focusedCardId);
+  const focusedCard = focusedCardIndex !== -1 ? spread.cards[focusedCardIndex] : null;
 
   return (
     <>
@@ -219,7 +222,10 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
             {/* Card Qualities */}
             <div className="flex flex-col justify-center max-w-md bg-zinc-900/80 p-6 md:p-8 rounded-xl border border-zinc-800 shadow-xl">
-              <p className="text-red-500 font-mono text-sm uppercase tracking-widest mb-2">{focusedCard.positionName}</p>
+              <p className="text-red-500 font-mono text-sm uppercase tracking-widest mb-2">
+                <span className="text-red-500/80 mr-2">{focusedCardIndex + 1}.</span>
+                {focusedCard.positionName}
+              </p>
               <h2 className="text-3xl md:text-4xl font-serif text-zinc-100 mb-6">{focusedCard.name}</h2>
               
               <div className="space-y-4">

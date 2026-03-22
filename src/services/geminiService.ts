@@ -364,9 +364,9 @@ class GeminiService {
    * Integrates 'Nano Banana 2' (gemini-3.1-flash-image-preview) for Tarot Card Art Generation
    * Utilizes a 3:4 aspect ratio standard for Tarot cards.
    */
-  async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, stylePrompt: string = "Highly detailed, esoteric tarot card art, mystical aesthetic, chiaroscuro lighting, symbolic"): Promise<string> {
+  async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, stylePrompt: string = "Highly detailed, esoteric tarot card art, mystical aesthetic, chiaroscuro lighting, symbolic, borderless, full bleed edge-to-edge artwork, no white margins"): Promise<string> {
     try {
-      const numberPrompt = cardNumber ? ` Include the number '${cardNumber}' in a central location at the top of the card.` : ` Include the traditional card number in a central location at the top of the card.`;
+      const numberPrompt = cardNumber ? ` Include the Roman Numeral '${cardNumber}' prominently centered at the top of the card.` : ` Include the traditional Roman Numeral prominently centered at the top of the card.`;
       const fullPrompt = `Create tarot card art for '${cardName}'. Style: ${stylePrompt}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
       
       const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
