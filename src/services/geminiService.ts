@@ -71,6 +71,10 @@ const drawTarotCardDeclaration: FunctionDeclaration = {
         type: Type.STRING,
         description: "The traditional number of the tarot card (e.g., '0', 'I', 'VIII', '10').",
       },
+      styleOverride: {
+        type: Type.STRING,
+        description: "Optional. A detailed aesthetic description to override the default style. Use this ONLY if the user wants a specific art style or if they uploaded an image to use as an aesthetic reference. (e.g., 'cyberpunk, neon, dark gritty' or 'watercolor, ethereal, pastel').",
+      },
     },
     required: ["cardName"],
   },
@@ -115,6 +119,10 @@ const conductTarotReadingDeclaration: FunctionDeclaration = {
             cardNumber: {
               type: Type.STRING,
               description: "The traditional number of the tarot card (e.g., '0', 'I', 'VIII', '10').",
+            },
+            styleOverride: {
+              type: Type.STRING,
+              description: "Optional. A detailed aesthetic description to override the default style. Use this ONLY if the user wants a specific art style or if they uploaded an image to use as an aesthetic reference. (e.g., 'cyberpunk, neon, dark gritty' or 'watercolor, ethereal, pastel').",
             }
           },
           required: ["name", "positionName"]
@@ -248,7 +256,7 @@ class GeminiService {
             const args = call.args as any;
             if (onThought) onThought(`Drawing tarot card: ${args.cardName}...`);
             try {
-              const base64Image = await this.generateTarotImage(args.cardName, TAROT_KNOWLEDGE, args.cardNumber);
+              const base64Image = await this.generateTarotImage(args.cardName, TAROT_KNOWLEDGE, args.cardNumber, args.styleOverride);
               if (onImageGenerated) {
                 onImageGenerated(base64Image);
               }
@@ -277,7 +285,7 @@ class GeminiService {
               const cardsWithImages = [];
               for (let index = 0; index < args.cards.length; index++) {
                 const card = args.cards[index];
-                const base64Image = await this.generateTarotImage(card.name, TAROT_KNOWLEDGE, card.cardNumber);
+                const base64Image = await this.generateTarotImage(card.name, TAROT_KNOWLEDGE, card.cardNumber, card.styleOverride);
                 cardsWithImages.push({
                   id: `card-${index}-${Date.now()}`,
                   name: card.name,
@@ -368,10 +376,15 @@ class GeminiService {
    * Integrates 'Nano Banana' (gemini-2.5-flash-image) for Tarot Card Art Generation
    * Utilizes a 3:4 aspect ratio standard for Tarot cards.
    */
-  async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, stylePrompt: string = "Highly detailed, esoteric tarot card art, mystical aesthetic, chiaroscuro lighting, symbolic, borderless, full bleed edge-to-edge artwork, no white margins"): Promise<string> {
+  async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, customStyle?: string): Promise<string> {
     try {
+      const defaultStyle = "Highly detailed, esoteric tarot card art, mystical aesthetic, chiaroscuro lighting, symbolic";
+      // Apply custom style if provided, otherwise fallback to default. Always enforce borderless constraints.
+      const appliedStyle = customStyle ? customStyle : defaultStyle;
+      const structuralConstraints = "borderless, full bleed edge-to-edge artwork, no white margins";
+      
       const numberPrompt = cardNumber ? ` Include the Roman Numeral '${cardNumber}' prominently centered at the top of the card.` : ` Include the traditional Roman Numeral prominently centered at the top of the card.`;
-      const fullPrompt = `A highly detailed tarot card illustration of '${cardName}'. Style: ${stylePrompt}. The title '${cardName}' is elegantly rendered in the image.${numberPrompt}`;
+      const fullPrompt = `Create tarot card art for '${cardName}'. Style: ${appliedStyle}, ${structuralConstraints}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
       
       const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
 
@@ -412,7 +425,7 @@ class GeminiService {
       // If the model returned text without an image, retry once with a more direct prompt
       if (!base64Image) {
         console.warn("No image generated on first attempt, retrying with a modified prompt...");
-        const retryPrompt = `Generate an image. Subject: Tarot card '${cardName}'. Style: ${stylePrompt}.`;
+        const retryPrompt = `Generate an image. Subject: Tarot card '${cardName}'. Style: ${appliedStyle}, ${structuralConstraints}.`;
         response = await generate(retryPrompt);
         base64Image = extractImage(response);
       }

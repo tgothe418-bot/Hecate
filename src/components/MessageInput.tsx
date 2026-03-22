@@ -1,4 +1,4 @@
-import React, { useState, KeyboardEvent, useRef } from "react";
+import React, { useState, KeyboardEvent, useRef, useEffect } from "react";
 import { Send, Paperclip, X, FileText } from "lucide-react";
 import { Attachment } from "../types";
 
@@ -15,6 +15,46 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const files: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/') || item.type === 'application/pdf') {
+          const file = item.getAsFile();
+          if (file) {
+            files.push(file);
+          }
+        }
+      }
+
+      if (files.length > 0) {
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64String = (reader.result as string).split(',')[1];
+            setAttachments(prev => [...prev, {
+              data: base64String,
+              mimeType: file.type,
+              name: file.name || `pasted-${Date.now()}`
+            }]);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    };
+
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, []);
+
   const handleSend = () => {
     if ((input.trim() || attachments.length > 0) && !isLoading) {
       onSendMessage(input.trim(), attachments.length > 0 ? attachments : undefined);
@@ -27,6 +67,37 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/') || item.type === 'application/pdf') {
+        const file = item.getAsFile();
+        if (file) {
+          files.push(file);
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = (reader.result as string).split(',')[1];
+          setAttachments(prev => [...prev, {
+            data: base64String,
+            mimeType: file.type,
+            name: file.name || `pasted-${Date.now()}`
+          }]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
@@ -98,6 +169,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Speak to Hecate..."
           disabled={isLoading}
           className="flex-1 bg-zinc-900 text-zinc-100 border border-zinc-800 rounded-full px-6 py-3 focus:outline-none focus:ring-2 focus:ring-red-900/50 focus:border-red-900/50 transition-all placeholder:text-zinc-600 disabled:opacity-50"
