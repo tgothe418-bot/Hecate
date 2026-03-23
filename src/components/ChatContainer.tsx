@@ -139,28 +139,45 @@ Please state your query or intent, and I will recommend an optimal geometric spr
           const responseText = await geminiService.sendMessage(
             content, 
             attachments,
-            (base64Image) => {
+            (base64Image, caption) => {
               setMessages((prev) => [
                 ...prev,
                 {
                   id: Date.now().toString() + Math.random().toString(),
                   role: "assistant",
                   content: `data:image/jpeg;base64,${base64Image}`,
+                  imageCaption: caption,
                   timestamp: new Date(),
                 },
               ]);
             },
             (spread) => {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: Date.now().toString() + Math.random().toString(),
-                  role: "assistant",
-                  content: `*The cards have been drawn and placed upon the astral board.*`,
-                  timestamp: new Date(),
-                  spread: spread,
-                },
-              ]);
+              setMessages((prev) => {
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage && lastMessage.spread && lastMessage.spread.type === spread.type) {
+                  const newMessages = [...prev];
+                  const allGenerated = spread.cards.every((c: any) => c.base64Image);
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    spread: spread,
+                    content: allGenerated 
+                      ? `*The cards have been drawn and placed upon the astral board.*`
+                      : `*The cards are being drawn and placed upon the astral board...*`
+                  };
+                  return newMessages;
+                } else {
+                  return [
+                    ...prev,
+                    {
+                      id: Date.now().toString() + Math.random().toString(),
+                      role: "assistant",
+                      content: `*The cards are being drawn and placed upon the astral board...*`,
+                      timestamp: new Date(),
+                      spread: spread,
+                    },
+                  ];
+                }
+              });
             },
             (thought) => setThoughtProcess(thought)
           );

@@ -13,8 +13,16 @@ export default function App() {
     const checkKey = async () => {
       const aistudio = (window as any).aistudio;
       if (aistudio && aistudio.hasSelectedApiKey) {
-        const selected = await aistudio.hasSelectedApiKey();
-        setHasKey(selected);
+        try {
+          // Add a timeout to prevent hanging forever if the API doesn't respond
+          const selected = await Promise.race([
+            aistudio.hasSelectedApiKey(),
+            new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 3000))
+          ]);
+          setHasKey(selected);
+        } catch (e) {
+          setHasKey(true);
+        }
       } else {
         // Fallback if not in AI Studio environment
         setHasKey(true);

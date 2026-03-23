@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Message } from "../types";
 import { Bot, User, RefreshCw, Maximize2, X, FileText } from "lucide-react";
-import ReactMarkdown, { Components } from "react-markdown";
+import ReactMarkdown from "react-markdown";
 import { StarGameBoard } from "./StarGameBoard";
 import { geminiService } from "../services/geminiService";
 import { SpreadBoard } from "./SpreadBoard";
@@ -17,65 +17,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const isUser = message.role === "user";
   const isImage = message.content.startsWith("data:image/");
-
-  const markdownComponents: Components = {
-    a: ({ node, ...props }) => {
-      if (props.href && (props.href.startsWith('data:image/') || props.href.match(/\.(jpeg|jpg|gif|png|webp)$/i))) {
-        return (
-          <div className="relative group my-4 inline-block">
-            <img 
-              src={props.href} 
-              alt="Generated Image" 
-              className="max-w-sm rounded-lg shadow-md border border-red-900/50 cursor-pointer transition-transform hover:scale-[1.02]"
-              referrerPolicy="no-referrer"
-              onClick={(e) => {
-                e.preventDefault();
-                setExpandedImage(props.href || null);
-                setIsExpanded(true);
-              }}
-            />
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                setExpandedImage(props.href || null);
-                setIsExpanded(true);
-              }}
-              className="absolute top-2 right-2 p-2 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
-              aria-label="Expand image"
-            >
-              <Maximize2 size={16} />
-            </button>
-          </div>
-        );
-      }
-      return <a {...props} className="text-red-400 hover:text-red-300 underline" />;
-    },
-    img: ({ node, ...props }) => (
-      <div className="relative group my-4 inline-block">
-        <img 
-          {...props} 
-          className="max-w-sm rounded-lg shadow-md border border-red-900/50 cursor-pointer transition-transform hover:scale-[1.02]"
-          referrerPolicy="no-referrer"
-          onClick={(e) => {
-            e.preventDefault();
-            setExpandedImage(props.src || null);
-            setIsExpanded(true);
-          }}
-        />
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            setExpandedImage(props.src || null);
-            setIsExpanded(true);
-          }}
-          className="absolute top-2 right-2 p-2 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
-          aria-label="Expand image"
-        >
-          <Maximize2 size={16} />
-        </button>
-      </div>
-    )
-  };
 
   return (
     <>
@@ -94,7 +35,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
             className={`px-4 py-3 rounded-2xl ${isUser ? "bg-zinc-800 text-zinc-100 rounded-tr-sm" : message.isError ? "bg-red-950/50 text-red-200 rounded-tl-sm border border-red-900/50" : "bg-zinc-900 text-zinc-300 rounded-tl-sm border border-red-900/30"} ${message.isGame || message.spread ? "w-full" : ""}`}
           >
             {isImage ? (
-              <div className="relative group">
+              <div className="relative group flex flex-col items-center gap-2">
                 <img 
                   src={message.content} 
                   alt="Generated Tarot Card" 
@@ -105,6 +46,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
                     setIsExpanded(true);
                   }}
                 />
+                {message.imageCaption && (
+                  <span className="text-xs text-zinc-400 italic font-serif">{message.imageCaption}</span>
+                )}
                 <button 
                   onClick={() => {
                     setExpandedImage(message.content);
@@ -119,7 +63,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
             ) : message.isGame ? (
               <div className="flex flex-col gap-4">
                 <div className="prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
                 <StarGameBoard 
                   engine={geminiService.getStarGameEngine()} 
@@ -129,7 +73,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
             ) : message.spread ? (
               <div className="flex flex-col gap-4 w-full">
                 <div className="prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
                 <SpreadBoard spread={message.spread} />
               </div>
@@ -161,7 +105,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onRetry, 
                 )}
                 {message.content && (
                   <div className="prose prose-invert prose-sm max-w-none">
-                    <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                 )}
               </div>

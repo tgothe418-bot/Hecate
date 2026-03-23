@@ -193,7 +193,7 @@ class GeminiService {
   async sendMessage(
     message: string, 
     attachments?: Attachment[], 
-    onImageGenerated?: (base64Image: string) => void, 
+    onImageGenerated?: (base64Image: string, caption?: string) => void, 
     onSpreadGenerated?: (spread: any) => void,
     onThought?: (thought: string) => void
   ): Promise<string> {
@@ -282,10 +282,17 @@ class GeminiService {
             if (onThought) onThought(`Conducting ${args.spreadType} reading...`);
             try {
               // Generate images sequentially to avoid 429 Rate Limit errors
-              const cardsWithImages = [];
+              const cardsWithImages: any[] = [];
+
               for (let index = 0; index < args.cards.length; index++) {
                 const card = args.cards[index];
+                if (onThought) onThought(`Manifesting ${card.name}...`);
                 const base64Image = await this.generateTarotImage(card.name, TAROT_KNOWLEDGE, card.cardNumber, card.styleOverride);
+                
+                if (onImageGenerated) {
+                  onImageGenerated(base64Image, `${card.name} - ${card.positionName}`);
+                }
+
                 cardsWithImages.push({
                   id: `card-${index}-${Date.now()}`,
                   name: card.name,
@@ -297,13 +304,11 @@ class GeminiService {
                 });
               }
 
-              const spread = {
-                type: args.spreadType,
-                cards: cardsWithImages
-              };
-
               if (onSpreadGenerated) {
-                onSpreadGenerated(spread);
+                onSpreadGenerated({
+                  type: args.spreadType,
+                  cards: cardsWithImages
+                });
               }
 
               functionResponses.push({

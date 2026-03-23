@@ -14,6 +14,7 @@ export interface Message {
   isGame?: boolean;
   spread?: Spread;
   attachments?: Attachment[];
+  imageCaption?: string;
 }
 
 export type DeckArchitecture = 'Standard/Orthodox (Rider-Waite-Smith)' | 'The Book of Thoth (Crowley)';
