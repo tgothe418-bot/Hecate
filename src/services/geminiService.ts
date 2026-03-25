@@ -175,7 +175,11 @@ class GeminiService {
         temperature: 0.7,
         topP: 0.95,
         topK: 64,
-        tools: [{ functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration, conductTarotReadingDeclaration, extractImageFromPdfDeclaration] }],
+        tools: [
+          { googleSearch: {} },
+          { functionDeclarations: [getGameStateDeclaration, movePieceDeclaration, drawTarotCardDeclaration, conductTarotReadingDeclaration, extractImageFromPdfDeclaration] }
+        ],
+        toolConfig: { includeServerSideToolInvocations: true },
         safetySettings: [
           {
             category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -367,7 +371,19 @@ class GeminiService {
         response = await this.chatSession!.sendMessage({ message: functionResponses as any });
       }
 
-      return response.text || "I have nothing to say at this moment.";
+      let finalResponseText = response.text || "I have nothing to say at this moment.";
+      
+      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      if (chunks && chunks.length > 0) {
+        finalResponseText += "\n\n**Sources:**\n";
+        chunks.forEach((chunk: any, index: number) => {
+          if (chunk.web && chunk.web.uri) {
+            finalResponseText += `[${index + 1}] [${chunk.web.title}](${chunk.web.uri})\n`;
+          }
+        });
+      }
+
+      return finalResponseText;
     } catch (error: any) {
       console.error("Error sending message to Gemini:", error);
       if (error.message === "API_KEY_INVALID") {
@@ -481,7 +497,8 @@ class GeminiService {
 
       const renderContext = {
         canvasContext: context,
-        viewport: viewport
+        viewport: viewport,
+        canvas: canvas
       };
 
       await page.render(renderContext).promise;
