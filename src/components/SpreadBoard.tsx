@@ -113,8 +113,8 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
   const renderCarouselSpread = (positions: React.CSSProperties[], svgLines?: React.ReactNode) => {
     return (
       <div className="w-full max-w-6xl mx-auto my-8 flex flex-col items-center">
-        {/* Minimap */}
-        <div className="relative w-full max-w-sm h-64 mb-12 border border-zinc-800/50 rounded-xl bg-zinc-950/30 overflow-hidden">
+        {/* The Mat */}
+        <div className="relative w-full max-w-4xl aspect-[4/3] sm:aspect-[16/9] mb-12 border border-zinc-800/50 rounded-xl bg-zinc-950/30 overflow-hidden shadow-2xl">
           {svgLines && (
             <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30">
               {svgLines}
@@ -122,19 +122,10 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
           )}
           {spread.cards.map((card, i) => (
             <div 
-              key={`mini-${card.id}`} 
-              className={`absolute w-6 h-8 rounded-sm border ${revealedCards.has(card.id) || card.isRevealed ? 'bg-red-900/80 border-red-500/50' : 'bg-zinc-800 border-zinc-600'} shadow-sm flex items-center justify-center`} 
-              style={positions[i] || { left: 0, top: 0 }}
+              key={`mat-${card.id}`} 
+              className="absolute w-[15%] sm:w-[12%] md:w-[10%] aspect-[3/4] shadow-xl" 
+              style={positions[i] || { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
             >
-              <span className="text-[8px] text-zinc-400">{i + 1}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Carousel */}
-        <div className="w-full flex overflow-x-auto snap-x snap-mandatory gap-6 pb-12 px-8 hide-scrollbar">
-          {spread.cards.map((card, i) => (
-            <div key={`carousel-${card.id}`} className="snap-center shrink-0 w-[75%] sm:w-[45%] md:w-[30%] lg:w-[22%] relative aspect-[3/4]">
               {renderCard(card, i, "relative w-full h-full cursor-pointer group")}
             </div>
           ))}
