@@ -36,11 +36,14 @@ export interface TarotCard {
   numerologicalEmanation?: string;
   cardNumber?: string;
   isRevealed: boolean;
+  isReversed?: boolean;
   x?: number; // For absolute positioning
   y?: number; // For absolute positioning
 }
 
+export type SpreadType = 'Shadow Work' | 'Hecate\'s Crossroads' | 'Psychological Webbing' | 'Linear' | 'The Oracle' | 'The Trinity' | 'The Cross of Hecate' | 'The Celtic Cross';
+
 export interface Spread {
-  type: 'Shadow Work' | 'Hecate\'s Crossroads' | 'Psychological Webbing' | 'Linear';
+  type: SpreadType;
   cards: TarotCard[];
 }

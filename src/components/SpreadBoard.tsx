@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Spread, TarotCard } from '../types';
 import { motion } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, Maximize2, Minimize2 } from 'lucide-react';
 
 interface SpreadBoardProps {
   spread: Spread;
@@ -10,6 +10,7 @@ interface SpreadBoardProps {
 export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
   const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleCard = (id: string) => {
     setRevealedCards(prev => {
@@ -39,18 +40,19 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
   const renderCard = (card: TarotCard, index: number, containerClassName: string, style?: React.CSSProperties) => {
     const isRevealed = revealedCards.has(card.id) || card.isRevealed;
     const glow = getElementalGlow(card.elementalDignity);
+    const reversedTransform = card.isReversed ? 'rotateZ(180deg)' : '';
 
     return (
       <motion.div 
         layoutId={`card-${card.id}`}
         key={card.id} 
-        className={containerClassName}
+        className={`${containerClassName} transition-all duration-300 hover:-translate-y-[5px] hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] rounded-lg`}
         style={style}
         onClick={() => toggleCard(card.id)}
       >
         <div className="relative w-full h-full transition-transform duration-700 preserve-3d" style={{ transform: isRevealed ? 'rotateY(180deg)' : '' }}>
           {/* Card Back */}
-          <div className="absolute w-full h-full backface-hidden bg-zinc-800 rounded-lg shadow-lg flex items-center justify-center overflow-hidden">
+          <div className="absolute w-full h-full backface-hidden bg-zinc-800 rounded-lg shadow-lg flex items-center justify-center overflow-hidden border border-zinc-700">
             <div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
             <div className="absolute inset-0 opacity-20 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/black-paper.png')]"></div>
             
@@ -78,24 +80,24 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
           {/* Card Front */}
           <div 
-            className="absolute w-full h-full backface-hidden bg-zinc-900 rounded-lg overflow-hidden" 
+            className="absolute w-full h-full backface-hidden bg-zinc-900 rounded-lg overflow-hidden border border-zinc-700" 
             style={{ 
-              transform: 'rotateY(180deg)',
+              transform: `rotateY(180deg) ${reversedTransform}`,
               boxShadow: `inset 0 0 20px rgba(0,0,0,0.8)${isRevealed && glow ? `, ${glow}` : ''}`
             }}
           >
             {card.base64Image ? (
               <img src={`data:image/jpeg;base64,${card.base64Image}`} alt={card.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center p-2 text-center text-xs text-zinc-400">
+              <div className={`w-full h-full flex items-center justify-center p-2 text-center text-xs text-zinc-400 ${card.isReversed ? 'rotate-180' : ''}`}>
                 {card.name}
               </div>
             )}
             
             {/* Tooltip */}
-            <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2 text-center z-10">
+            <div className={`absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2 text-center z-10 ${card.isReversed ? 'rotate-180' : ''}`}>
               <p className="text-xs font-bold text-red-500 mb-1">{index + 1}. {card.positionName}</p>
-              <p className="text-xs text-zinc-200">{card.name}</p>
+              <p className="text-xs text-zinc-200">{card.name} {card.isReversed ? '(Reversed)' : ''}</p>
             </div>
           </div>
         </div>
@@ -112,18 +114,21 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
   const renderCarouselSpread = (positions: React.CSSProperties[], svgLines?: React.ReactNode) => {
     return (
-      <div className="w-full max-w-6xl mx-auto my-8 flex flex-col items-center">
+      <div className={`w-full mx-auto my-8 flex flex-col items-center ${isExpanded ? 'max-w-[1440px] h-full' : 'max-w-6xl'}`}>
         {/* The Mat */}
-        <div className="relative w-full max-w-4xl aspect-[4/3] sm:aspect-[16/9] mb-12 border border-zinc-800/50 rounded-xl bg-zinc-950/30 overflow-hidden shadow-2xl">
+        <div className={`relative w-full border border-zinc-800/50 rounded-xl bg-zinc-950/40 overflow-hidden shadow-2xl transition-all duration-500 ${isExpanded ? 'h-[80vh] max-h-[1000px]' : 'max-w-4xl aspect-[4/3] sm:aspect-[16/9] mb-12'}`}>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.8)_100%)] pointer-events-none z-0"></div>
+          <div className="absolute inset-0 opacity-10 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] pointer-events-none z-0"></div>
+          
           {svgLines && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30">
+            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30 z-0">
               {svgLines}
             </svg>
           )}
           {spread.cards.map((card, i) => (
             <div 
               key={`mat-${card.id}`} 
-              className="absolute w-[15%] sm:w-[12%] md:w-[10%] aspect-[3/4] shadow-xl" 
+              className={`absolute aspect-[2.75/4.75] shadow-xl z-10 transition-all duration-500 ${isExpanded ? 'w-[12%] sm:w-[10%] md:w-[8%]' : 'w-[15%] sm:w-[12%] md:w-[10%]'}`} 
               style={positions[i] || { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
             >
               {renderCard(card, i, "relative w-full h-full cursor-pointer group")}
@@ -132,6 +137,49 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
         </div>
       </div>
     );
+  };
+
+  const renderOracleSpread = () => {
+    const positions = [
+      { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' },
+    ];
+    return renderCarouselSpread(positions);
+  };
+
+  const renderTrinitySpread = () => {
+    const positions = [
+      { left: '30%', top: '50%', transform: 'translate(-50%, -50%)' },
+      { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' },
+      { left: '70%', top: '50%', transform: 'translate(-50%, -50%)' },
+    ];
+    return renderCarouselSpread(positions);
+  };
+
+  const renderCrossOfHecateSpread = () => {
+    const positions = [
+      { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }, // Center
+      { left: '50%', top: '50%', transform: 'translate(-50%, -50%) rotate(90deg)' }, // Horizontal
+      { left: '50%', top: '80%', transform: 'translate(-50%, -50%)' }, // Bottom
+      { left: '50%', top: '20%', transform: 'translate(-50%, -50%)' }, // Top
+      { left: '75%', top: '50%', transform: 'translate(-50%, -50%)' }, // Right
+    ];
+    return renderCarouselSpread(positions);
+  };
+
+  const renderCelticCrossSpread = () => {
+    const positions = [
+      { left: '35%', top: '50%', transform: 'translate(-50%, -50%)' }, // 1. The Present
+      { left: '35%', top: '50%', transform: 'translate(-50%, -50%) rotate(90deg)' }, // 2. The Challenge
+      { left: '35%', top: '85%', transform: 'translate(-50%, -50%)' }, // 3. The Past
+      { left: '15%', top: '50%', transform: 'translate(-50%, -50%)' }, // 4. The Future
+      { left: '35%', top: '15%', transform: 'translate(-50%, -50%)' }, // 5. Above
+      { left: '55%', top: '50%', transform: 'translate(-50%, -50%)' }, // 6. Below
+      { left: '80%', top: '85%', transform: 'translate(-50%, -50%)' }, // 7. Advice
+      { left: '80%', top: '61.6%', transform: 'translate(-50%, -50%)' }, // 8. External Influences
+      { left: '80%', top: '38.3%', transform: 'translate(-50%, -50%)' }, // 9. Hopes and Fears
+      { left: '80%', top: '15%', transform: 'translate(-50%, -50%)' }, // 10. Outcome
+    ];
+    return renderCarouselSpread(positions);
   };
 
   const renderShadowWorkSpread = () => {
@@ -161,9 +209,9 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
   const renderLinearSpread = () => {
     return (
-      <div className="flex flex-wrap justify-center gap-6 my-8 w-full max-w-6xl mx-auto">
+      <div className={`flex flex-wrap justify-center gap-6 my-8 w-full mx-auto ${isExpanded ? 'max-w-[1440px]' : 'max-w-6xl'}`}>
         {spread.cards.map((card, i) => (
-          renderCard(card, i, "relative w-[30%] sm:w-[25%] md:w-[20%] lg:w-[16%] aspect-[3/4] cursor-pointer group")
+          renderCard(card, i, `relative aspect-[2.75/4.75] cursor-pointer group transition-all duration-500 ${isExpanded ? 'w-[20%] sm:w-[16%] md:w-[12%] lg:w-[10%]' : 'w-[30%] sm:w-[25%] md:w-[20%] lg:w-[16%]'}`)
         ))}
       </div>
     );
@@ -215,12 +263,46 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
   const focusedCardIndex = spread.cards.findIndex(c => c.id === focusedCardId);
   const focusedCard = focusedCardIndex !== -1 ? spread.cards[focusedCardIndex] : null;
 
-  return (
+  const boardContent = (
     <>
+      {spread.type === 'The Oracle' && renderOracleSpread()}
+      {spread.type === 'The Trinity' && renderTrinitySpread()}
+      {spread.type === 'The Cross of Hecate' && renderCrossOfHecateSpread()}
+      {spread.type === 'The Celtic Cross' && renderCelticCrossSpread()}
       {spread.type === 'Shadow Work' && renderShadowWorkSpread()}
       {spread.type === 'Hecate\'s Crossroads' && renderCrossroadsSpread()}
       {spread.type === 'Psychological Webbing' && renderPsychologicalWebbingSpread()}
-      {spread.type !== 'Shadow Work' && spread.type !== 'Hecate\'s Crossroads' && spread.type !== 'Psychological Webbing' && renderLinearSpread()}
+      {spread.type !== 'The Oracle' && spread.type !== 'The Trinity' && spread.type !== 'The Cross of Hecate' && spread.type !== 'The Celtic Cross' && spread.type !== 'Shadow Work' && spread.type !== 'Hecate\'s Crossroads' && spread.type !== 'Psychological Webbing' && renderLinearSpread()}
+    </>
+  );
+
+  return (
+    <>
+      {isExpanded ? (
+        <div className="fixed inset-0 z-40 bg-zinc-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 sm:p-8 overflow-y-auto">
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="absolute top-6 right-6 z-50 p-3 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-full transition-colors border border-zinc-700/50 shadow-lg"
+            title="Collapse Board"
+          >
+            <Minimize2 size={24} />
+          </button>
+          <div className="w-full max-w-[1440px] mx-auto flex-1 flex flex-col justify-center">
+            {boardContent}
+          </div>
+        </div>
+      ) : (
+        <div className="relative w-full group/board">
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="absolute top-2 right-2 z-30 p-2 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-full transition-colors border border-zinc-700/50 opacity-0 group-hover/board:opacity-100 shadow-md"
+            title="Expand Board"
+          >
+            <Maximize2 size={20} />
+          </button>
+          {boardContent}
+        </div>
+      )}
 
       {focusedCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-8" onClick={closeFocusedCard}>
@@ -232,10 +314,10 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
             {/* Large Card */}
             <motion.div 
               layoutId={`card-${focusedCard.id}`}
-              className="relative h-[70vh] md:h-[85vh] aspect-[3/4] flex-shrink-0"
+              className="relative h-[70vh] md:h-[85vh] aspect-[2.75/4.75] flex-shrink-0"
             >
               <div 
-                className="w-full h-full bg-zinc-900 rounded-xl overflow-hidden"
+                className={`w-full h-full bg-zinc-900 rounded-xl overflow-hidden ${focusedCard.isReversed ? 'rotate-180' : ''}`}
                 style={{ 
                   boxShadow: `inset 0 0 30px rgba(0,0,0,0.8)${focusedCard.elementalDignity && getElementalGlow(focusedCard.elementalDignity) ? `, ${getElementalGlow(focusedCard.elementalDignity)}` : ''}`
                 }}
@@ -243,7 +325,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
                 {focusedCard.base64Image ? (
                   <img src={`data:image/jpeg;base64,${focusedCard.base64Image}`} alt={focusedCard.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center p-4 text-center text-zinc-400">
+                  <div className={`w-full h-full flex items-center justify-center p-4 text-center text-zinc-400 ${focusedCard.isReversed ? 'rotate-180' : ''}`}>
                     {focusedCard.name}
                   </div>
                 )}

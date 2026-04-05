@@ -88,7 +88,7 @@ const conductTarotReadingDeclaration: FunctionDeclaration = {
     properties: {
       spreadType: {
         type: Type.STRING,
-        description: "The type of spread to use ('Shadow Work', 'Hecate\\'s Crossroads', 'Psychological Webbing', or 'Linear').",
+        description: "The type of spread to use ('The Oracle', 'The Trinity', 'The Cross of Hecate', 'The Celtic Cross', 'Shadow Work', 'Hecate\\'s Crossroads', 'Psychological Webbing', or 'Linear').",
       },
       cards: {
         type: Type.ARRAY,
@@ -119,6 +119,10 @@ const conductTarotReadingDeclaration: FunctionDeclaration = {
             cardNumber: {
               type: Type.STRING,
               description: "The traditional number of the tarot card (e.g., '0', 'I', 'VIII', '10').",
+            },
+            isReversed: {
+              type: Type.BOOLEAN,
+              description: "Whether the card was drawn reversed (upside down).",
             },
             styleOverride: {
               type: Type.STRING,
@@ -304,7 +308,8 @@ class GeminiService {
                   elementalDignity: card.elementalDignity,
                   numerologicalEmanation: card.numerologicalEmanation,
                   base64Image,
-                  isRevealed: false
+                  isRevealed: false,
+                  isReversed: card.isReversed
                 });
               }
 
