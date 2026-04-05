@@ -143,11 +143,8 @@ export const StarGameBoard: React.FC<StarGameBoardProps> = ({ engine, onMove, on
                             ? 'bg-zinc-200 text-zinc-900' 
                             : 'bg-zinc-950 text-zinc-200 border border-zinc-700'}
                         `}>
-                          <span className="font-serif text-xs font-bold" title={piece.alchemicalId}>
-                            {piece.alchemicalId.substring(0, 1)}
-                          </span>
-                          <span className="font-serif text-[6px] ml-0.5 opacity-80">
-                            T{piece.permutationTier}
+                          <span className="font-serif text-[10px] font-bold" title={`State ${piece.metamorphosisState}`}>
+                            {['α(α)', 'α(β)', 'α(γ)', 'β(α)', 'β(β)', 'β(γ)', 'γ(α)', 'γ(β)', 'γ(γ)'][piece.metamorphosisState - 1] || '?'}
                           </span>
                         </div>
                       )}

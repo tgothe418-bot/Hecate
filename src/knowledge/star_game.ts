@@ -23,21 +23,40 @@ Pieces represent fluid energy states based on three alchemical principles:
 - **Beta (β) / Mercury**: The Nexion (Liminal/Threshold)
 - **Gamma (γ) / Sulfur**: Acausal Space-Time (Fluid/Chaos)
 
-Each piece has a permutationTier (1, 2, or 3).
+Each piece tracks its exact position in the 9-Step Law of Metamorphosis (State 1 to 9).
 
 ## 3. Movement Mechanics
-- **Causal Move**: Movement within the same board (z remains constant). A piece can move up to its \`permutationTier\` squares in any direction (dx <= tier, dy <= tier).
-- **Acausal Move**: Movement between boards (z changes). A piece can move up/down boards up to its \`permutationTier\` (dz <= tier). The x and y coordinates can change by at most 1 (dx <= 1, dy <= 1).
+Movement is based on the primary symbol of the piece's current state:
+- **Alpha (α) Pieces [States 1-3]**: Can *only* move across the board they are currently on to any vacant square. They cannot change Z-levels (no acausal movement).
+- **Beta (β) Pieces [States 4-6]**: Can move across their current board to any vacant square, AND can move up or down exactly *one* level (e.g., Z=2 to Z=3).
+- **Gamma (γ) Pieces [States 7-9]**: Can move to *any* vacant square on *any* board.
 
-**Capturing**: A piece captures an opponent's piece by landing on its occupied square. The captured piece is removed from the game.
+## 4. Strict Capturing Logic
+- **Only** a γ(γ) [State 9] piece is permitted to capture an opposing piece.
+- A γ(γ) piece can capture any opposing piece on any square on any board.
+- Immediately after executing the capture, the γ(γ) piece reverts to an α(α) piece [State 1], losing its mobility.
 
-## 4. The Law of Metamorphosis (CRITICAL MECHANIC)
-The game rejects static identity. Immediately after a piece makes an **acausal move** (changes z coordinate), it **instantly transforms** into the next permutation tier.
-Tier 1 -> Tier 2 -> Tier 3 -> Tier 1.
+## 5. The Law of Metamorphosis (CRITICAL MECHANIC)
+The game rejects static identity. After *any* move (causal or acausal), a piece must instantly transform to the next state in this exact sequence:
+1. α(α)
+2. α(β)
+3. α(γ)
+4. β(α)
+5. β(β)
+6. β(γ)
+7. γ(α)
+8. γ(β)
+9. γ(γ)
 
-## 5. Win Conditions
+When a γ(γ) piece is moved (without capturing), it reverts to being an α(α) piece.
+
+## 6. The Mira Trap (Z=4 Hazard)
+- Pieces can only stay on Mira for exactly three moves.
+- If a piece is on Mira and becomes an α(α) piece (which cannot move between boards), it cannot escape and is instantly forfeited/removed from the game.
+
+## 7. Win Conditions
 - **Physical Domination**: Capture all of the opponent's pieces.
-- **Acausal Supremacy**: Occupy Naos (z=7) with a Tier 3 piece.
+- **Acausal Supremacy**: Occupy Naos (z=7) with a γ(γ) [State 9] piece.
 
 ## Playing the Game as Hecate
 If a user requests to play The Star Game, you must:
