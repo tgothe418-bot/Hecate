@@ -290,34 +290,39 @@ class GeminiService {
             if (onThought) onThought(`Conducting ${args.spreadType} reading...`);
             try {
               // Generate images sequentially to avoid 429 Rate Limit errors
-              const cardsWithImages: any[] = [];
-
-              for (let index = 0; index < args.cards.length; index++) {
-                const card = args.cards[index];
-                if (onThought) onThought(`Manifesting ${card.name}...`);
-                const base64Image = await this.generateTarotImage(card.name, TAROT_KNOWLEDGE, card.cardNumber, card.styleOverride);
-                
-                if (onImageGenerated) {
-                  onImageGenerated(base64Image, `${card.name} - ${card.positionName}`);
-                }
-
-                cardsWithImages.push({
-                  id: `card-${index}-${Date.now()}`,
-                  name: card.name,
-                  positionName: card.positionName,
-                  elementalDignity: card.elementalDignity,
-                  numerologicalEmanation: card.numerologicalEmanation,
-                  base64Image,
-                  isRevealed: false,
-                  isReversed: card.isReversed
-                });
-              }
+              const cardsWithImages: any[] = args.cards.map((card: any, index: number) => ({
+                id: `card-${index}-${Date.now()}`,
+                name: card.name,
+                positionName: card.positionName,
+                elementalDignity: card.elementalDignity,
+                numerologicalEmanation: card.numerologicalEmanation,
+                base64Image: null, // Initially null
+                isRevealed: false,
+                isReversed: card.isReversed
+              }));
 
               if (onSpreadGenerated) {
                 onSpreadGenerated({
                   type: args.spreadType,
-                  cards: cardsWithImages
+                  cards: [...cardsWithImages]
                 });
+              }
+
+              const esotericVerbs = ["Manifesting", "Channeling", "Summoning", "Drawing", "Revealing", "Unveiling"];
+              for (let index = 0; index < args.cards.length; index++) {
+                const card = args.cards[index];
+                const verb = esotericVerbs[index % esotericVerbs.length];
+                if (onThought) onThought(`${verb} ${card.name}...`);
+                const base64Image = await this.generateTarotImage(card.name, TAROT_KNOWLEDGE, card.cardNumber, card.styleOverride);
+                
+                cardsWithImages[index].base64Image = base64Image;
+
+                if (onSpreadGenerated) {
+                  onSpreadGenerated({
+                    type: args.spreadType,
+                    cards: [...cardsWithImages]
+                  });
+                }
               }
 
               functionResponses.push({
@@ -400,17 +405,16 @@ class GeminiService {
 
   /**
    * Integrates 'Nano Banana' (gemini-2.5-flash-image) for Tarot Card Art Generation
-   * Utilizes a 3:4 aspect ratio standard for Tarot cards.
+   * Utilizes a 16:9 aspect ratio standard for cinematic widescreen displays.
    */
   async generateTarotImage(cardName: string, esotericContext: string, cardNumber?: string, customStyle?: string): Promise<string> {
     try {
-      const defaultStyle = "Highly detailed, esoteric tarot card art, mystical aesthetic, chiaroscuro lighting, symbolic";
+      const defaultStyle = "Highly detailed, esoteric art, mystical aesthetic, chiaroscuro lighting, symbolic";
       // Apply custom style if provided, otherwise fallback to default. Always enforce borderless constraints.
       const appliedStyle = customStyle ? customStyle : defaultStyle;
-      const structuralConstraints = "borderless, full bleed edge-to-edge artwork, no white margins";
+      const structuralConstraints = "borderless, full bleed edge-to-edge artwork, no white margins, no text, no letters, no numbers. Cinematic composition, wide-angle, panoramic, landscape format. NEVER generate an image of a Tarot card sitting on a table. Generate the scene inside the card as if it is a literal, immersive world. Position central archetypal figures off-center or show them interacting with a sprawling esoteric landscape.";
       
-      const numberPrompt = cardNumber ? ` Include the Roman Numeral '${cardNumber}' prominently centered at the top of the card.` : ` Include the traditional Roman Numeral prominently centered at the top of the card.`;
-      const fullPrompt = `Create tarot card art for '${cardName}'. Style: ${appliedStyle}, ${structuralConstraints}. Include the title '${cardName}' elegantly rendered in the image.${numberPrompt}`;
+      const fullPrompt = `Create an immersive esoteric scene for '${cardName}'. Style: ${appliedStyle}. Constraints: ${structuralConstraints}.`;
       
       const imageAi = new GoogleGenAI({ apiKey: getApiKey() });
 
@@ -424,7 +428,7 @@ class GeminiService {
           },
           config: {
             imageConfig: {
-              aspectRatio: "3:4"
+              aspectRatio: "16:9"
             }
           }
         });

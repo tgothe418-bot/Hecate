@@ -128,7 +128,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
           {spread.cards.map((card, i) => (
             <div 
               key={`mat-${card.id}`} 
-              className={`absolute aspect-[2.75/4.75] shadow-xl z-10 transition-all duration-500 ${isExpanded ? 'w-[12%] sm:w-[10%] md:w-[8%]' : 'w-[15%] sm:w-[12%] md:w-[10%]'}`} 
+              className={`absolute aspect-video shadow-xl z-10 transition-all duration-500 ${isExpanded ? 'w-[20%] sm:w-[18%] md:w-[16%]' : 'w-[25%] sm:w-[22%] md:w-[20%]'}`} 
               style={positions[i] || { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
             >
               {renderCard(card, i, "relative w-full h-full cursor-pointer group")}
@@ -161,7 +161,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
       { left: '50%', top: '50%', transform: 'translate(-50%, -50%) rotate(90deg)' }, // Horizontal
       { left: '50%', top: '80%', transform: 'translate(-50%, -50%)' }, // Bottom
       { left: '50%', top: '20%', transform: 'translate(-50%, -50%)' }, // Top
-      { left: '75%', top: '50%', transform: 'translate(-50%, -50%)' }, // Right
+      { left: '80%', top: '50%', transform: 'translate(-50%, -50%)' }, // Right
     ];
     return renderCarouselSpread(positions);
   };
@@ -171,13 +171,13 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
       { left: '35%', top: '50%', transform: 'translate(-50%, -50%)' }, // 1. The Present
       { left: '35%', top: '50%', transform: 'translate(-50%, -50%) rotate(90deg)' }, // 2. The Challenge
       { left: '35%', top: '85%', transform: 'translate(-50%, -50%)' }, // 3. The Past
-      { left: '15%', top: '50%', transform: 'translate(-50%, -50%)' }, // 4. The Future
+      { left: '10%', top: '50%', transform: 'translate(-50%, -50%)' }, // 4. The Future
       { left: '35%', top: '15%', transform: 'translate(-50%, -50%)' }, // 5. Above
-      { left: '55%', top: '50%', transform: 'translate(-50%, -50%)' }, // 6. Below
-      { left: '80%', top: '85%', transform: 'translate(-50%, -50%)' }, // 7. Advice
-      { left: '80%', top: '61.6%', transform: 'translate(-50%, -50%)' }, // 8. External Influences
-      { left: '80%', top: '38.3%', transform: 'translate(-50%, -50%)' }, // 9. Hopes and Fears
-      { left: '80%', top: '15%', transform: 'translate(-50%, -50%)' }, // 10. Outcome
+      { left: '60%', top: '50%', transform: 'translate(-50%, -50%)' }, // 6. Below
+      { left: '85%', top: '85%', transform: 'translate(-50%, -50%)' }, // 7. Advice
+      { left: '85%', top: '61.6%', transform: 'translate(-50%, -50%)' }, // 8. External Influences
+      { left: '85%', top: '38.3%', transform: 'translate(-50%, -50%)' }, // 9. Hopes and Fears
+      { left: '85%', top: '15%', transform: 'translate(-50%, -50%)' }, // 10. Outcome
     ];
     return renderCarouselSpread(positions);
   };
@@ -211,7 +211,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
     return (
       <div className={`flex flex-wrap justify-center gap-6 my-8 w-full mx-auto ${isExpanded ? 'max-w-[1440px]' : 'max-w-6xl'}`}>
         {spread.cards.map((card, i) => (
-          renderCard(card, i, `relative aspect-[2.75/4.75] cursor-pointer group transition-all duration-500 ${isExpanded ? 'w-[20%] sm:w-[16%] md:w-[12%] lg:w-[10%]' : 'w-[30%] sm:w-[25%] md:w-[20%] lg:w-[16%]'}`)
+          renderCard(card, i, `relative aspect-video cursor-pointer group transition-all duration-500 ${isExpanded ? 'w-[30%] sm:w-[25%] md:w-[20%] lg:w-[18%]' : 'w-[40%] sm:w-[35%] md:w-[30%] lg:w-[25%]'}`)
         ))}
       </div>
     );
@@ -306,7 +306,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
 
       {focusedCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-8" onClick={closeFocusedCard}>
-          <div className="relative flex flex-col md:flex-row items-center justify-center gap-8 max-w-7xl w-full h-full" onClick={e => e.stopPropagation()}>
+          <div className="relative flex flex-col lg:flex-row items-center justify-center gap-8 max-w-7xl w-full h-full" onClick={e => e.stopPropagation()}>
             <button className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors z-50" onClick={closeFocusedCard}>
               <X size={32} />
             </button>
@@ -314,7 +314,7 @@ export const SpreadBoard: React.FC<SpreadBoardProps> = ({ spread }) => {
             {/* Large Card */}
             <motion.div 
               layoutId={`card-${focusedCard.id}`}
-              className="relative h-[70vh] md:h-[85vh] aspect-[2.75/4.75] flex-shrink-0"
+              className="relative w-full max-w-3xl md:max-w-4xl aspect-video flex-shrink-0"
             >
               <div 
                 className={`w-full h-full bg-zinc-900 rounded-xl overflow-hidden ${focusedCard.isReversed ? 'rotate-180' : ''}`}

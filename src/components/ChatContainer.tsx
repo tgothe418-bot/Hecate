@@ -157,12 +157,13 @@ Please state your query or intent, and I will recommend an optimal geometric spr
                 if (lastMessage && lastMessage.spread && lastMessage.spread.type === spread.type) {
                   const newMessages = [...prev];
                   const allGenerated = spread.cards.every((c: any) => c.base64Image);
+                  const generatedCount = spread.cards.filter((c: any) => c.base64Image).length;
                   newMessages[newMessages.length - 1] = {
                     ...lastMessage,
                     spread: spread,
                     content: allGenerated 
                       ? `*The cards have been drawn and placed upon the astral board.*`
-                      : `*The cards are being drawn and placed upon the astral board...*`
+                      : `*Drawing cards... (${generatedCount}/${spread.cards.length})*`
                   };
                   return newMessages;
                 } else {
@@ -171,7 +172,7 @@ Please state your query or intent, and I will recommend an optimal geometric spr
                     {
                       id: Date.now().toString() + Math.random().toString(),
                       role: "assistant",
-                      content: `*The cards are being drawn and placed upon the astral board...*`,
+                      content: `*Preparing the astral board...*`,
                       timestamp: new Date(),
                       spread: spread,
                     },

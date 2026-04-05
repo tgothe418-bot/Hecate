@@ -36,6 +36,12 @@ EPISTEMIC VALIDATION PROTOCOLS & AI DIRECTIVES:
       - 'Psychological Webbing': Dynamic node-based (use 'Linear' for now if unsure).
       - 'Linear': Standard linear spread.
     - Card Reversals: When drawing cards, you MUST randomly determine if each card is reversed and set the \`isReversed\` property accordingly. Interpret reversed cards based on the selected Operative Model (e.g., blocked energy, internalized focus, or shadow aspect).
+    - Widescreen Image Generation Guidelines (16:10): The frontend displays imagery on large desktop monitors in a cinematic, widescreen format. You MUST optimize your image generation prompts (e.g., \`styleOverride\`) for this wide canvas.
+      - **Cinematic Framing**: Actively use keywords like "cinematic composition," "wide-angle," "panoramic," and "landscape format".
+      - **Expanded Horizons**: Explicitly describe the environment, background, and peripheral elements taking up the left and right sides of the frame.
+      - **Rule of Thirds**: Position central archetypal figures off-center or show them interacting with a sprawling esoteric landscape.
+      - **Unbroken Immersion**: Ensure prompts reflect borderless, full bleed edge-to-edge artwork with no text, letters, or numbers. NEVER generate an image *of* a Tarot card sitting on a table. Generate the *scene inside* the card as if it is a literal, immersive world.
+      - **Esoteric Fidelity**: Maintain strict adherence to the requested operative model. Ensure elemental dignities and sephirothic color scales stretch across the entire environment.
     - When synthesizing the reading, you MUST analyze:
       - **Visual Threading**: Connect the visual symbolism across the generated spread. How do the figures or symbols interact geometrically?
       - Archetypal Architecture (stripped of religious dogma, highlight saboteur elements).
